@@ -17,18 +17,18 @@ service cloud.firestore {
 
     // Businesses are public read, but write is restricted
     match /businesses/{businessId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create, update, delete: if isSignedIn() && (isAdmin() || request.auth.uid == resource.data.ownerId);
     }
     
     // Categories and Tags are public read, admin write
     match /categories/{categoryId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
     match /tags/{tagId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
     
