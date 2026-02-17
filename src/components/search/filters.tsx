@@ -1,6 +1,5 @@
 'use client';
 
-import { categories } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -14,7 +13,20 @@ import { Slider } from '@/components/ui/slider';
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
 import { Filter } from 'lucide-react';
 
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Category } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
 function FiltersContent() {
+  const firestore = useFirestore();
+  const categoriesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'categories');
+  }, [firestore]);
+
+  const { data: categories, isLoading } = useCollection<Category>(categoriesQuery);
+
   return (
     <div className="flex flex-col gap-6">
       <Accordion type="multiple" defaultValue={['category', 'price', 'rating']} className="w-full">
@@ -24,7 +36,13 @@ function FiltersContent() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3">
-              {categories.slice(0, 8).map((category) => (
+              {isLoading && Array.from({length: 5}).map((_, i) => (
+                <div key={i} className="flex items-center space-x-2">
+                    <Skeleton className="h-4 w-4" />
+                    <Skeleton className="h-4 w-24" />
+                </div>
+              ))}
+              {categories?.slice(0, 8).map((category) => (
                 <div key={category.id} className="flex items-center space-x-2">
                   <Checkbox id={`cat-${category.id}`} />
                   <Label
@@ -35,9 +53,9 @@ function FiltersContent() {
                   </Label>
                 </div>
               ))}
-              <Button variant="link" className="p-0 h-auto">
+              {(categories?.length || 0) > 8 && <Button variant="link" className="p-0 h-auto">
                 Show all
-              </Button>
+              </Button>}
             </div>
           </AccordionContent>
         </AccordionItem>
