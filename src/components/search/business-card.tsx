@@ -67,7 +67,7 @@ export default function BusinessCard({
           <div className="flex items-start justify-between">
             <div>
               {category && (
-                <Link href="#" className="text-sm text-primary font-medium">
+                <Link href={`/search?category=${category.id}`} className="text-sm text-primary font-medium">
                   {category.name_en}
                 </Link>
               )}

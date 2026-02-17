@@ -13,9 +13,16 @@ import { ArrowRight, Building2, Search, UtensilsCrossed } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { categories } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
+
+  async function searchAction(formData: FormData) {
+    'use server';
+    const query = formData.get('query') as string;
+    redirect(`/search?q=${query}`);
+  }
 
   return (
     <div className="flex flex-col">
@@ -40,11 +47,12 @@ export default function Home() {
               Your ultimate guide to businesses, services, and places in Doha
               and beyond.
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-2 max-w-xl mx-auto p-2 bg-background/20 rounded-lg">
+            <form action={searchAction} className="flex flex-col sm:flex-row items-center gap-2 max-w-xl mx-auto p-2 bg-background/20 rounded-lg">
               <div className="relative flex-grow w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
                   type="search"
+                  name="query"
                   placeholder="Search for restaurants, shops, services..."
                   className="w-full pl-10 text-base py-3 h-12 text-foreground bg-background focus:bg-background/90"
                 />
@@ -57,7 +65,7 @@ export default function Home() {
                 <span className="sm:hidden">Search</span>
                 <Search className="hidden sm:block h-5 w-5" />
               </Button>
-            </div>
+            </form>
           </div>
         </div>
       </section>
@@ -74,7 +82,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
             {categories.slice(0, 10).map((category) => (
-              <Link href="#" key={category.id}>
+              <Link href={`/search?category=${category.id}`} key={category.id}>
                 <Card className="group overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
                   <CardContent className="p-4 flex flex-col items-center justify-center text-center aspect-square">
                     <category.icon
@@ -94,7 +102,7 @@ export default function Home() {
           </div>
           <div className="text-center mt-12">
             <Button variant="outline" asChild>
-              <Link href="#">
+              <Link href="/categories">
                 Explore All Categories <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -120,7 +128,7 @@ export default function Home() {
                   <Link href="/submit-business">Add Your Business</Link>
                 </Button>
                 <Button variant="secondary" asChild>
-                  <Link href="#">Learn More</Link>
+                  <Link href="/about">Learn More</Link>
                 </Button>
               </div>
             </div>

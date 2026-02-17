@@ -11,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
 import {
   Menu,
   Search,
@@ -20,6 +19,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import { Logo } from './logo';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const navLinks = [
   { href: '/search', label: 'Search' },
@@ -28,7 +28,7 @@ const navLinks = [
 ];
 
 export function Header() {
-  const isAuthenticated = false; // Mock authentication state
+  const isAuthenticated = true; // Mock authentication state
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -95,17 +95,19 @@ export function Header() {
 
         <div className="flex flex-1 items-center justify-end space-x-2">
           <div className="w-full flex-1 md:w-auto md:flex-none">
-            <Button
-              variant="outline"
-              className="hidden md:flex w-full justify-between text-muted-foreground"
-            >
-              Search...
-              <Search className="h-4 w-4" />
-            </Button>
+             <Link href="/search" className="hidden md:flex">
+                <Button
+                variant="outline"
+                className="w-full md:w-64 lg:w-80 justify-between text-muted-foreground"
+                >
+                Search...
+                <Search className="h-4 w-4" />
+                </Button>
+            </Link>
           </div>
           
-          <Button variant="ghost" size="icon" className="md:hidden">
-            <Search className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="md:hidden" asChild>
+            <Link href="/search"><Search className="h-5 w-5" /></Link>
           </Button>
 
           <DropdownMenu>
@@ -124,9 +126,11 @@ export function Header() {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <UserCircle className="h-5 w-5" />
-                  <span className="sr-only">User Menu</span>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
