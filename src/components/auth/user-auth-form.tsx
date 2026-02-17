@@ -18,9 +18,10 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  UserCredential,
 } from 'firebase/auth';
-import { useFirebase } from '@/firebase';
-import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { useFirebase, setDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean;
@@ -49,17 +50,24 @@ export function UserAuthForm({
   const [isGoogleLoading, setIsGoogleLoading] = React.useState<boolean>(false);
   const { auth, firestore } = useFirebase();
 
-  const handleAuthSuccess = async (userCredential: any) => {
+  const handleAuthSuccess = (userCredential: UserCredential) => {
     const user = userCredential.user;
-    if (isSignUp && user) {
-        const userRef = doc(firestore, "users", user.uid);
-        await setDoc(userRef, {
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            role: "user",
-            createdAt: serverTimestamp(),
-        }, { merge: true });
+    if (user && firestore) {
+      const userRef = doc(firestore, 'users', user.uid);
+      // This will create the user profile if it's their first time,
+      // or update their details if they already exist.
+      // It handles both new sign-ups and first-time Google logins.
+      setDocumentNonBlocking(
+        userRef,
+        {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: 'user',
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
     toast({
       title: isSignUp ? 'Account created' : 'Signed in',
@@ -95,7 +103,7 @@ export function UserAuthForm({
           data.password
         );
       }
-      await handleAuthSuccess(userCredential);
+      handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
     } finally {
@@ -108,7 +116,7 @@ export function UserAuthForm({
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      await handleAuthSuccess(userCredential);
+      handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
     } finally {

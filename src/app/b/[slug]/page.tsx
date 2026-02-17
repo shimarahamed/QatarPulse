@@ -31,11 +31,14 @@ import {
 } from 'lucide-react';
 import type { Business, Category, Tag } from '@/lib/types';
 import {
-  useCollection,
   useFirestore,
   useMemoFirebase,
   useUser,
   WithId,
+  updateDocumentNonBlocking,
+  setDocumentNonBlocking,
+  errorEmitter,
+  FirestorePermissionError,
 } from '@/firebase';
 import {
   collection,
@@ -43,11 +46,9 @@ import {
   where,
   getDocs,
   doc,
-  updateDoc,
   arrayUnion,
   arrayRemove,
   getDoc,
-  setDoc,
   limit,
 } from 'firebase/firestore';
 import React, { useState, useEffect } from 'react';
@@ -55,6 +56,7 @@ import { iconMap } from '@/lib/icon-map';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function BusinessProfilePage({
   params,
@@ -76,47 +78,57 @@ export default function BusinessProfilePage({
 
     const fetchBusinessData = async () => {
       setIsLoading(true);
-      const q = query(
-        collection(firestore, 'businesses'),
-        where('slug', '==', params.slug),
-        limit(1)
-      );
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        notFound();
-        return;
-      }
-
-      const bizDoc = querySnapshot.docs[0];
-      const bizData = { ...bizDoc.data(), id: bizDoc.id } as WithId<Business>;
-      setBusiness(bizData);
-
-      // Fetch category
-      if (bizData.category_id) {
-        const catDoc = await getDoc(
-          doc(firestore, 'categories', bizData.category_id)
+      try {
+        const q = query(
+          collection(firestore, 'businesses'),
+          where('slug', '==', params.slug),
+          limit(1)
         );
-        if (catDoc.exists()) {
-          setCategory({ ...catDoc.data(), id: catDoc.id } as WithId<Category>);
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          notFound();
+          return;
         }
-      }
 
-      // Fetch tags
-      if (bizData.tag_ids && bizData.tag_ids.length > 0) {
-        const tagsQuery = query(
-          collection(firestore, 'tags'),
-          where('__name__', 'in', bizData.tag_ids)
-        );
-        const tagsSnapshot = await getDocs(tagsQuery);
-        setTags(
-          tagsSnapshot.docs.map(
-            (d) => ({ ...d.data(), id: d.id } as WithId<Tag>)
-          )
-        );
+        const bizDoc = querySnapshot.docs[0];
+        const bizData = { ...bizDoc.data(), id: bizDoc.id } as WithId<Business>;
+        setBusiness(bizData);
+
+        // Fetch category
+        if (bizData.category_id) {
+          const catDoc = await getDoc(
+            doc(firestore, 'categories', bizData.category_id)
+          );
+          if (catDoc.exists()) {
+            setCategory({ ...catDoc.data(), id: catDoc.id } as WithId<Category>);
+          }
+        }
+
+        // Fetch tags
+        if (bizData.tag_ids && bizData.tag_ids.length > 0) {
+          const tagsQuery = query(
+            collection(firestore, 'tags'),
+            where('__name__', 'in', bizData.tag_ids)
+          );
+          const tagsSnapshot = await getDocs(tagsQuery);
+          setTags(
+            tagsSnapshot.docs.map(
+              (d) => ({ ...d.data(), id: d.id } as WithId<Tag>)
+            )
+          );
+        }
+      } catch (e: any) {
+        if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
+          const contextualError = new FirestorePermissionError({
+            operation: 'list',
+            path: `businesses`,
+          });
+          errorEmitter.emit('permission-error', contextualError);
+        }
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     fetchBusinessData();
@@ -125,92 +137,108 @@ export default function BusinessProfilePage({
   // Check if it's a favorite
   useEffect(() => {
     if (user && business && firestore) {
-        const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
-        getDoc(favListRef).then(docSnap => {
-            if (docSnap.exists() && docSnap.data().businessIds?.includes(business.id)) {
-                setIsFavorite(true);
-            } else {
-                setIsFavorite(false);
-            }
+      const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
+      getDoc(favListRef)
+        .then((docSnap) => {
+          if (
+            docSnap.exists() &&
+            docSnap.data().businessIds?.includes(business.id)
+          ) {
+            setIsFavorite(true);
+          } else {
+            setIsFavorite(false);
+          }
+        })
+        .catch((e) => {
+          if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
+            const contextualError = new FirestorePermissionError({
+              operation: 'get',
+              path: favListRef.path,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+          }
         });
     }
   }, [user, business, firestore]);
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = () => {
     if (!user) {
-        toast({
-            variant: "destructive",
-            title: "Not signed in",
-            description: "You need to be signed in to add favorites.",
-        })
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Not signed in',
+        description: 'You need to be signed in to add favorites.',
+      });
+      return;
     }
     if (!business || !firestore) return;
 
     const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
-    
-    try {
-        if(isFavorite) {
-            await updateDoc(favListRef, {
-                businessIds: arrayRemove(business.id)
-            });
-            toast({ title: "Removed from Favorites"});
-        } else {
-             await setDoc(favListRef, {
-                name: "Favorites",
-                businessIds: arrayUnion(business.id)
-            }, { merge: true });
-            toast({ title: "Added to Favorites" });
-        }
-        setIsFavorite(!isFavorite);
-    } catch(e) {
-        console.error("Error updating favorites", e);
-        toast({ variant: "destructive", title: "Error", description: "Could not update favorites."});
-    }
-  };
 
+    if (isFavorite) {
+      updateDocumentNonBlocking(favListRef, {
+        businessIds: arrayRemove(business.id),
+      });
+      toast({ title: 'Removed from Favorites' });
+    } else {
+      setDocumentNonBlocking(
+        favListRef,
+        {
+          name: 'Favorites',
+          businessIds: arrayUnion(business.id),
+        },
+        { merge: true }
+      );
+      toast({ title: 'Added to Favorites' });
+    }
+    setIsFavorite(!isFavorite);
+  };
 
   if (isLoading) {
     return (
-        <div className="bg-secondary">
-            <div className="container mx-auto px-4 md:px-6 py-8">
-                 <div className="grid md:grid-cols-3 gap-8">
-                    <div className="md:col-span-2">
-                        <Card>
-                            <Skeleton className="w-full aspect-[16/9] rounded-t-lg" />
-                            <div className="p-6">
-                                <Skeleton className="h-6 w-1/4 mb-2" />
-                                <Skeleton className="h-10 w-3/4 mb-2" />
-                                <Skeleton className="h-5 w-1/2 mb-6" />
-                                <Skeleton className="h-24 w-full" />
-                            </div>
-                        </Card>
-                    </div>
-                     <div className="space-y-6">
-                        <Card>
-                            <CardContent className="p-6 space-y-4">
-                                <Skeleton className="h-6 w-full" />
-                                <Skeleton className="h-6 w-full" />
-                                <Skeleton className="h-10 w-full mt-4" />
-                            </CardContent>
-                        </Card>
-                    </div>
+      <div className="bg-secondary">
+        <div className="container mx-auto px-4 md:px-6 py-8">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-2">
+              <Card>
+                <Skeleton className="w-full aspect-[16/9] rounded-t-lg" />
+                <div className="p-6">
+                  <Skeleton className="h-6 w-1/4 mb-2" />
+                  <Skeleton className="h-10 w-3/4 mb-2" />
+                  <Skeleton className="h-5 w-1/2 mb-6" />
+                  <Skeleton className="h-24 w-full" />
                 </div>
+              </Card>
             </div>
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-10 w-full mt-4" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
-    )
+      </div>
+    );
   }
 
   if (!business) {
     return notFound();
   }
 
-  const galleryImages = business.image_ids?.map(
-    (id) => PlaceHolderImages.find((img) => img.id === id)!
-  ).filter(Boolean) || [];
+  const galleryImages =
+    business.image_ids
+      ?.map((id) => PlaceHolderImages.find((img) => img.id === id)!)
+      .filter(Boolean) || [];
   const mapImage = PlaceHolderImages.find(
     (img) => img.id === 'map-placeholder'
   );
+  const relevantHours = business.opening_hours
+    ? Object.values(business.opening_hours).find((h) => h.includes(' - '))
+    : null;
+  const closingTime = relevantHours ? relevantHours.split(' - ')[1] : null;
 
   return (
     <div className="bg-secondary">
@@ -260,18 +288,28 @@ export default function BusinessProfilePage({
                       {business.name_ar}
                     </h2>
                   </div>
-                   <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                    <Button variant="ghost" size="icon" onClick={toggleFavorite} disabled={isUserLoading}>
-                      <Heart className={cn("h-6 w-6", isFavorite && "fill-red-500 text-red-500")} />
+                  <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleFavorite}
+                      disabled={isUserLoading}
+                    >
+                      <Heart
+                        className={cn(
+                          'h-6 w-6',
+                          isFavorite && 'fill-red-500 text-red-500'
+                        )}
+                      />
                     </Button>
                     <div className="flex items-center gap-1.5 text-amber-500">
-                        <Star className="h-5 w-5 fill-current" />
-                        <span className="text-foreground font-bold text-lg ml-1">
+                      <Star className="h-5 w-5 fill-current" />
+                      <span className="text-foreground font-bold text-lg ml-1">
                         {business.rating?.toFixed(1)}
-                        </span>
-                        <span className="text-muted-foreground text-sm">
+                      </span>
+                      <span className="text-muted-foreground text-sm">
                         ({business.review_count} reviews)
-                        </span>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -331,56 +369,62 @@ export default function BusinessProfilePage({
                     {business.phone}
                   </a>
                 </div>
-                {business.website &&
-                    <div className="flex items-center">
+                {business.website && (
+                  <div className="flex items-center">
                     <Globe className="h-5 w-5 mr-3 text-muted-foreground" />
                     <a
-                        href={business.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline text-primary"
+                      href={business.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline text-primary"
                     >
-                        {business.website.replace('https://', '')}
+                      {business.website.replace('https://', '')}
                     </a>
-                    </div>
-                }
+                  </div>
+                )}
                 <Separator />
                 <div className="flex flex-col gap-4 pt-2">
                   <Button asChild>
-                    <a href={`tel:${business.phone}`}><Phone className="h-4 w-4 mr-2" /> Call Now</a>
+                    <a href={`tel:${business.phone}`}>
+                      <Phone className="h-4 w-4 mr-2" /> Call Now
+                    </a>
                   </Button>
                   <Button variant="secondary">
                     <MessageCircle className="h-4 w-4 mr-2" /> Send Message
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link href={`/claim?businessId=${business.id}`}>Claim this Business</Link>
-                    </Button>
+                    <Link href={`/claim?businessId=${business.id}`}>
+                      Claim this Business
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {business.opening_hours &&
-                <Card>
+            {business.opening_hours && (
+              <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center">
+                  <CardTitle className="font-headline flex items-center">
                     <Clock className="h-5 w-5 mr-2" />
                     Opening Hours
-                    </CardTitle>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ul className="space-y-2 text-sm">
+                  <ul className="space-y-2 text-sm">
                     {Object.entries(business.opening_hours).map(
-                        ([day, hours]) => (
+                      ([day, hours]) => (
                         <li key={day} className="flex justify-between">
-                            <span className="text-muted-foreground capitalize">{day}</span>
-                            <span className="font-medium">{hours}</span>
+                          <span className="text-muted-foreground capitalize">
+                            {day}
+                          </span>
+                          <span className="font-medium">{hours}</span>
                         </li>
-                        )
+                      )
                     )}
-                    </ul>
+                  </ul>
                 </CardContent>
-                </Card>
-            }
+              </Card>
+            )}
 
             <Card className="overflow-hidden">
               <CardHeader>

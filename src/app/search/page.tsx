@@ -28,6 +28,8 @@ import {
   useFirestore,
   useMemoFirebase,
   WithId,
+  errorEmitter,
+  FirestorePermissionError,
 } from '@/firebase';
 import {
   collection,
@@ -57,7 +59,7 @@ function SearchResults() {
   const [categories, setCategories] = React.useState<WithId<Category>[]>([]);
   const [tags, setTags] = React.useState<WithId<Tag>[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  
+
   const categoriesQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'categories') : null),
     [firestore]
@@ -69,7 +71,7 @@ function SearchResults() {
     [firestore]
   );
   const { data: tagsData } = useCollection<Tag>(tagsQuery);
-  
+
   useEffect(() => {
     if (categoriesData) setCategories(categoriesData);
   }, [categoriesData]);
@@ -78,39 +80,50 @@ function SearchResults() {
     if (tagsData) setTags(tagsData);
   }, [tagsData]);
 
-
   useEffect(() => {
     if (!firestore) return;
 
     const fetchBusinesses = async () => {
       setIsLoading(true);
-      
+
       let q: Query<DocumentData> = collection(firestore, 'businesses');
 
       if (categoryId) {
         q = query(q, where('category_id', '==', categoryId));
       }
-      
+
       // Note: Firestore doesn't support full-text search natively.
       // This is a basic "starts-with" search for demonstration.
       // A production app would use Algolia/Typesense.
       if (queryParam) {
-         q = query(q, where('name_en', '>=', queryParam), where('name_en', '<=', queryParam + '\uf8ff'));
+        q = query(
+          q,
+          where('name_en', '>=', queryParam),
+          where('name_en', '<=', queryParam + '\uf8ff')
+        );
       }
 
-      // Pagination logic would be more complex, involving startAfter with document snapshots
-      // For this example, we'll fetch all and paginate on the client.
-      const querySnapshot = await getDocs(q);
-      const bizData = querySnapshot.docs.map(
-        (doc) => ({ ...doc.data(), id: doc.id } as WithId<Business>)
-      );
-      setBusinesses(bizData);
-      setIsLoading(false);
+      try {
+        const querySnapshot = await getDocs(q);
+        const bizData = querySnapshot.docs.map(
+          (doc) => ({ ...doc.data(), id: doc.id } as WithId<Business>)
+        );
+        setBusinesses(bizData);
+      } catch (e: any) {
+        if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
+          const contextualError = new FirestorePermissionError({
+            operation: 'list',
+            path: `businesses`,
+          });
+          errorEmitter.emit('permission-error', contextualError);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchBusinesses();
   }, [firestore, queryParam, categoryId]);
-
 
   const categoryName = categoryId
     ? categories.find((c) => c.id === categoryId)?.name_en
@@ -182,17 +195,17 @@ function SearchResults() {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
-             <Card key={i} className="flex flex-col md:flex-row overflow-hidden">
-                <Skeleton className="md:w-1/3 aspect-[4/3]" />
-                <div className='p-6 flex-1'>
-                    <Skeleton className="h-4 w-1/4 mb-2" />
-                    <Skeleton className="h-6 w-1/2 mb-2" />
-                    <Skeleton className="h-4 w-3/4 mb-4" />
-                    <div className="flex gap-2">
-                        <Skeleton className="h-5 w-16 rounded-full" />
-                        <Skeleton className="h-5 w-20 rounded-full" />
-                    </div>
+            <Card key={i} className="flex flex-col md:flex-row overflow-hidden">
+              <Skeleton className="md:w-1/3 aspect-[4/3]" />
+              <div className="p-6 flex-1">
+                <Skeleton className="h-4 w-1/4 mb-2" />
+                <Skeleton className="h-6 w-1/2 mb-2" />
+                <Skeleton className="h-4 w-3/4 mb-4" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
                 </div>
+              </div>
             </Card>
           ))}
         </div>
