@@ -48,9 +48,10 @@ import {
   arrayRemove,
   getDoc,
   setDoc,
+  limit,
 } from 'firebase/firestore';
 import React, { useState, useEffect } from 'react';
-import { iconMap } from '@/lib/data';
+import { iconMap } from '@/lib/icon-map';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -123,7 +124,7 @@ export default function BusinessProfilePage({
 
   // Check if it's a favorite
   useEffect(() => {
-    if (user && business) {
+    if (user && business && firestore) {
         const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
         getDoc(favListRef).then(docSnap => {
             if (docSnap.exists() && docSnap.data().businessIds?.includes(business.id)) {
@@ -144,7 +145,7 @@ export default function BusinessProfilePage({
         })
         return;
     }
-    if (!business) return;
+    if (!business || !firestore) return;
 
     const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
     
@@ -206,7 +207,7 @@ export default function BusinessProfilePage({
 
   const galleryImages = business.image_ids?.map(
     (id) => PlaceHolderImages.find((img) => img.id === id)!
-  ) || [];
+  ).filter(Boolean) || [];
   const mapImage = PlaceHolderImages.find(
     (img) => img.id === 'map-placeholder'
   );

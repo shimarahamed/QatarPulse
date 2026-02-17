@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Category } from '@/lib/types';
 import { collection } from 'firebase/firestore';
-import { iconMap } from '@/lib/data';
+import { iconMap } from '@/lib/icon-map';
 import { UtensilsCrossed } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 

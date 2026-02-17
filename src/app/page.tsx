@@ -13,7 +13,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import type { Category } from '@/lib/types';
-import { iconMap } from '@/lib/data';
+import { iconMap } from '@/lib/icon-map';
 import { collection, query, limit } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
