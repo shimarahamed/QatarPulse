@@ -3,35 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../logo';
-import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import {
-  LayoutDashboard,
-  Building2,
-  FileCode,
-  ListTodo,
-  ShieldCheck,
-  AlertTriangle,
-  Users,
-  Settings,
-  DownloadCloud,
-} from 'lucide-react';
-
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/businesses', label: 'Businesses', icon: Building2 },
-  { href: '/admin/ingestion', label: 'Ingestion', icon: DownloadCloud,
-    subItems: [
-        { href: '/admin/ingestion/sources', label: 'Sources'},
-        { href: '/admin/ingestion/jobs', label: 'Jobs'},
-    ]
-   },
-  { href: '/admin/moderation', label: 'Moderation', icon: ListTodo },
-  { href: '/admin/claims', label: 'Claims', icon: ShieldCheck },
-  { href: '/admin/reports', label: 'Reports', icon: AlertTriangle },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-];
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { ChevronRight } from 'lucide-react';
+import { adminNavItems } from '@/lib/admin-nav';
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -46,19 +25,68 @@ export function AdminSidebar() {
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="grid items-start px-4 text-sm font-medium">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link href={item.href}>
-                <Button
-                  variant={pathname === item.href ? 'secondary' : 'ghost'}
-                  className="w-full justify-start"
+          {adminNavItems.map((item) =>
+            item.subItems ? (
+              <li key={item.label}>
+                <Collapsible
+                  defaultOpen={pathname.startsWith(item.href)}
                 >
-                  <item.icon className="mr-2 h-4 w-4" />
-                  {item.label}
-                </Button>
-              </Link>
-            </li>
-          ))}
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant={
+                        pathname.startsWith(item.href) ? 'secondary' : 'ghost'
+                      }
+                      className="w-full justify-start"
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {item.label}
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 pt-2">
+                    <ul className="grid gap-1">
+                      <li>
+                        <Link href={item.href}>
+                          <Button
+                            variant={pathname === item.href ? 'secondary' : 'ghost'}
+                            className="w-full justify-start pl-8"
+                          >
+                           Manual Entry
+                          </Button>
+                        </Link>
+                      </li>
+                      {item.subItems.map((subItem) => (
+                        <li key={subItem.href}>
+                          <Link href={subItem.href}>
+                            <Button
+                              variant={
+                                pathname === subItem.href ? 'secondary' : 'ghost'
+                              }
+                              className="w-full justify-start pl-8"
+                            >
+                              {subItem.label}
+                            </Button>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </Collapsible>
+              </li>
+            ) : (
+              <li key={item.href}>
+                <Link href={item.href}>
+                  <Button
+                    variant={pathname === item.href ? 'secondary' : 'ghost'}
+                    className="w-full justify-start"
+                  >
+                    <item.icon className="mr-2 h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              </li>
+            )
+          )}
         </ul>
       </nav>
     </aside>

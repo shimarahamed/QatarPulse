@@ -14,29 +14,20 @@ import { Button } from '../ui/button';
 import {
   Menu,
   UserCircle,
-  LayoutDashboard,
-  Building2,
-  FileCode,
-  ListTodo,
-  ShieldCheck,
-  AlertTriangle,
-  Users,
-  Settings,
+  ChevronRight
 } from 'lucide-react';
 import { Logo } from '../logo';
-
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/businesses', label: 'Businesses', icon: Building2 },
-  { href: '/admin/sources', label: 'Ingestion Sources', icon: FileCode },
-  { href: '/admin/moderation', label: 'Moderation', icon: ListTodo },
-  { href: '/admin/claims', label: 'Claims', icon: ShieldCheck },
-  { href: '/admin/reports', label: 'Reports', icon: AlertTriangle },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-];
+import { adminNavItems } from '@/lib/admin-nav';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { usePathname } from 'next/navigation';
 
 export function AdminHeader() {
+  const pathname = usePathname();
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
       <Sheet>
@@ -54,16 +45,36 @@ export function AdminHeader() {
             >
               <Logo className="h-5 w-5 transition-all group-hover:scale-110" />
             </Link>
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            ))}
+            {adminNavItems.map((item) =>
+              item.subItems ? (
+                <Collapsible
+                  key={item.label}
+                  defaultOpen={pathname.startsWith(item.href)}
+                  className="grid gap-4"
+                >
+                  <CollapsibleTrigger className="flex items-center gap-4 px-2.5 text-muted-foreground [&[data-state=open]>svg]:rotate-90">
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                    <ChevronRight className="h-4 w-4 ml-auto transition-transform" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="grid gap-4 pl-11">
+                    <Link href={item.href} className="text-muted-foreground hover:text-foreground">Manual Entry</Link>
+                    {item.subItems.map((subItem) => (
+                      <Link key={subItem.href} href={subItem.href} className="text-muted-foreground hover:text-foreground">{subItem.label}</Link>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.label}
+                </Link>
+              )
+            )}
           </nav>
         </SheetContent>
       </Sheet>
