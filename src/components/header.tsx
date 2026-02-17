@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import {
   Menu,
   Search,
@@ -85,6 +85,10 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[300px]">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetDescription>Main navigation links for the website.</SheetDescription>
+            </SheetHeader>
             <nav className="flex flex-col gap-4 mt-8">
               <Link href="/" className="mb-4 flex items-center gap-2">
                 <Logo className="h-8 w-auto text-primary" />

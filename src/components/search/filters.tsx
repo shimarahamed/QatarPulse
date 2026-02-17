@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/accordion';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { Filter } from 'lucide-react';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
@@ -144,8 +144,12 @@ export default function FiltersSidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left">
-            <h2 className="font-headline text-xl font-bold my-4">Filters</h2>
-            <FiltersContent />
+            <SheetHeader>
+                <SheetTitle className="font-headline text-xl font-bold">Filters</SheetTitle>
+            </SheetHeader>
+            <div className="py-4">
+                <FiltersContent />
+            </div>
           </SheetContent>
         </Sheet>
       </div>
