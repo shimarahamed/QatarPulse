@@ -4,7 +4,7 @@ export type Category = {
   id: string;
   name_en: string;
   name_ar: string;
-  icon: LucideIcon;
+  icon_name: string;
 };
 
 export type Tag = {
@@ -40,4 +40,5 @@ export type Business = {
   review_count: number;
   logo_id: string;
   image_ids: string[];
+  ownerId?: string;
 };

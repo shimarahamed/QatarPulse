@@ -1,274 +1,53 @@
-/**
- * This ruleset enforces a security model for the QatarPulse business directory.
- *
- * Core Philosophy:
- * The model combines public read access for directory data with strict, role-based controls for modifications.
- * It uses a hybrid approach:
- * 1. Public Read-Only: Core directory content like businesses, categories, and locations are publicly readable to all users, including anonymous ones.
- * 2. User Ownership: User-specific data (profiles, favorite lists) is strictly confined to the user who created it.
- * 3. Role-Based Access Control (RBAC): Administrative and moderation tasks are restricted to users with 'admin' or 'moderator' roles, which are managed in dedicated `/roles` collections.
- *
- * Data Structure:
- * - Public data (e.g., /businesses, /categories) is stored in top-level collections.
- * - Private user data (e.g., /users/{userId}/user_lists) is nested within a user's document tree, enforcing ownership through the path.
- * - Roles are stored in top-level collections like `/roles/admin/{uid}` for fast, database-backed access checks.
- *
- * Key Security Decisions:
- * - Denormalization for Authorization: To ensure performant and secure access checks, ownership data (like a business `ownerId`) is denormalized onto related documents (e.g., branches, reviews). This avoids slow and costly `get()` calls in rules.
- * - Structural Segregation: Collections are designed to have a uniform security posture. For example, public data is never mixed with admin-only data in the same collection.
- * - No User Enumeration: Listing documents in the top-level `/users` collection is explicitly disallowed to protect user privacy.
- * - Query-First Security: Public read access for collections like `/businesses` and `/reviews` relies on the client application to query for documents with a specific status (e.g., `where('status', '==', 'active')`). The rules secure individual document `get` requests by enforcing this status, ensuring that direct access to non-public documents is blocked.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions for auth and roles
+  
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-    function isResourceOwner(ownerId) {
-      return isSignedIn() && request.auth.uid == ownerId;
-    }
+    
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles/admin/$(request.auth.uid));
-    }
-    function isModerator() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles/moderator/$(request.auth.uid));
-    }
-    function isStaff() {
-      return isAdmin() || isModerator();
-    }
-    function isExistingDocument() {
-      return resource != null;
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    /**
-     * @description Public business listings. Publicly readable if 'active', writable only by the business owner or an admin.
-     * @path /businesses/{businessId}
-     * @allow (get) Any user reading a single, active business profile.
-     * @deny (get) Any user trying to read a business with a status of 'suspended' or 'removed'.
-     * @deny (update) A user who is not the owner trying to modify the business details.
-     * @principle Public read for active content, with ownership enforced for all write operations.
-     */
+    // Businesses are public read, but write is restricted
     match /businesses/{businessId} {
-      allow get: if resource.data.status == 'active' || (isSignedIn() && (isResourceOwner(resource.data.ownerId) || isStaff()));
-      allow list: if true;
-      allow create: if isSignedIn() && (isResourceOwner(request.resource.data.ownerId) || isAdmin());
-      allow update: if isExistingDocument() && isSignedIn() && (isResourceOwner(resource.data.ownerId) || isAdmin());
-      allow delete: if isExistingDocument() && isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if isSignedIn() && (isAdmin() || request.auth.uid == resource.data.ownerId);
     }
-
-    /**
-     * @description Business branch locations. Publicly readable, writable by the parent business owner or an admin.
-     * @path /branches/{branchId}
-     * @allow (get) Any user viewing an active branch location.
-     * @deny (update) A user trying to update a branch for a business they do not own.
-     * @principle Follows the same security model as the parent business, relying on a denormalized ownerId for authorization.
-     */
-    match /branches/{branchId} {
-      // NOTE: This rule assumes the business `ownerId` is denormalized onto the branch document for efficient auth.
-      allow get: if resource.data.status == 'active' || (isSignedIn() && (isResourceOwner(resource.data.ownerId) || isStaff()));
-      allow list: if true;
-      allow create: if isSignedIn() && (isResourceOwner(request.resource.data.ownerId) || isAdmin());
-      allow update: if isExistingDocument() && isSignedIn() && (isResourceOwner(resource.data.ownerId) || isAdmin());
-      allow delete: if isExistingDocument() && isAdmin();
-    }
-
-    /**
-     * @description Global lookup collection for business categories.
-     * @path /categories/{categoryId}
-     * @allow (list) Any user fetching the list of available categories.
-     * @deny (create) A non-admin user trying to add a new category.
-     * @principle Publicly readable data that is centrally managed by administrators.
-     */
+    
+    // Categories and Tags are public read, admin write
     match /categories/{categoryId} {
       allow get, list: if true;
-      allow create, update, delete: if isExistingDocument() && isAdmin();
+      allow create, update, delete: if isAdmin();
     }
 
-    /**
-     * @description Global lookup collection for searchable tags and services.
-     * @path /tags/{tagId}
-     * @allow (list) Any user fetching the list of available tags.
-     * @deny (create) A non-admin user trying to add a new tag.
-     * @principle Publicly readable data that is centrally managed by administrators.
-     */
     match /tags/{tagId} {
       allow get, list: if true;
-      allow create, update, delete: if isExistingDocument() && isAdmin();
+      allow create, update, delete: if isAdmin();
     }
-
-    /**
-     * @description Global lookup collection for geographical areas.
-     * @path /location_areas/{areaId}
-     * @allow (list) Any user fetching the list of available areas.
-     * @deny (create) A non-admin user trying to add a new location area.
-     * @principle Publicly readable data that is centrally managed by administrators.
-     */
-    match /location_areas/{areaId} {
-      allow get, list: if true;
-      allow create, update, delete: if isExistingDocument() && isAdmin();
-    }
-
-    /**
-     * @description User profile data. Accessible only by the user themselves or an admin.
-     * @path /users/{userId}
-     * @allow (create) auth.uid matches {userId}. A new user creating their own profile.
-     * @allow (get) auth.uid matches {userId}. A user reading their own profile.
-     * @deny (get) auth.uid 'user_A' trying to read the profile of 'user_B'.
-     * @deny (list) Any user trying to list all documents in the /users collection.
-     * @principle Enforces strict data privacy by restricting access to the document owner or an administrator. Prevents user enumeration.
-     */
+    
+    // User profile is only writable by the user themselves or an admin.
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if false; // Disallow listing of users
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingDocument() && isOwner(userId);
-      allow delete: if isExistingDocument() && isAdmin();
-
-      /**
-       * @description User-created lists of businesses (e.g., favorites).
-       * @path /users/{userId}/user_lists/{listId}
-       * @allow (create) auth.uid matches {userId}. A user creating a new list.
-       * @deny (get) A user trying to access another user's private list.
-       * @principle Restricts all access to a user's own data tree using path-based ownership.
-       */
-      match /user_lists/{listId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update, delete: if isExistingDocument() && isOwner(userId);
-      }
-    }
-
-    /**
-     * @description DBAC collection for granting Admin privileges.
-     * @path /roles/admin/{adminUid}
-     * @allow (get) Any signed-in user or service account, enabling `exists()` checks.
-     * @deny (create) A non-admin trying to grant themselves admin rights.
-     * @principle Manages admin roles. Writable only by existing admins, readable for authorization checks.
-     */
-    match /roles/admin/{adminUid} {
       allow get: if isSignedIn();
-      allow list: if false;
-      allow create, update, delete: if isExistingDocument() && isAdmin();
-    }
-
-    /**
-     * @description DBAC collection for granting Moderator privileges.
-     * @path /roles/moderator/{moderatorUid}
-     * @allow (get) Any signed-in user or service account, enabling `exists()` checks.
-     * @deny (create) A non-admin or non-moderator trying to grant moderator rights.
-     * @principle Manages moderator roles. Writable only by admins.
-     */
-    match /roles/moderator/{moderatorUid} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create, update, delete: if isExistingDocument() && isAdmin();
-    }
-
-    /**
-     * @description Manages business claim requests. Accessible by the submitter and staff.
-     * @path /business_claims/{claimId}
-     * @allow (create) A signed-in user submitting a claim for a business.
-     * @deny (get) A user trying to view a claim submitted by another user.
-     * @allow (update) A moderator or admin updating the status of a claim.
-     * @principle Shared access model where the creator has initial access, and staff have management access.
-     */
-    match /business_claims/{claimId} {
-      allow get: if isSignedIn() && (isResourceOwner(resource.data.claimerUserId) || isStaff());
-      allow list: if isStaff();
-      allow create: if isSignedIn() && isResourceOwner(request.resource.data.claimerUserId);
-      allow update: if isExistingDocument() && isStaff();
-      allow delete: if isExistingDocument() && isAdmin();
-    }
-
-    /**
-     * @description User-submitted reviews. Publicly readable if 'approved'.
-     * @path /reviews/{reviewId}
-     * @allow (get) Any user reading an 'approved' review.
-     * @allow (create) A signed-in user submitting a review.
-     * @deny (update) A user trying to edit a review written by someone else.
-     * @allow (update) The business owner or a moderator updating a review for their business.
-     * @principle Hybrid model: public read for approved content, with writes restricted to the author, the subject's owner, or staff.
-     */
-    match /reviews/{reviewId} {
-      // NOTE: `businessOwnerId` is assumed to be denormalized onto the review document.
-      allow get: if resource.data.status == 'approved' || (isSignedIn() && (isResourceOwner(resource.data.userId) || isResourceOwner(resource.data.businessOwnerId) || isStaff()));
-      allow list: if true;
-      allow create: if isSignedIn() && isResourceOwner(request.resource.data.userId);
-      allow update: if isExistingDocument() && isSignedIn() && (isResourceOwner(resource.data.userId) || isResourceOwner(resource.data.businessOwnerId) || isStaff());
-      allow delete: if isExistingDocument() && isSignedIn() && (isResourceOwner(resource.data.userId) || isStaff());
-    }
-
-    /**
-     * @description Admin-only collections for managing the data ingestion pipeline.
-     * @path /ingestion_sources/{sourceId}
-     * @allow (get) An admin viewing an ingestion source configuration.
-     * @deny (get) Any non-admin user attempting to access ingestion configurations.
-     * @principle Secures critical backend infrastructure by restricting all access to administrators.
-     */
-    match /ingestion_sources/{sourceId} {
-      allow get, list: if isAdmin();
-      allow create, update, delete: if isExistingDocument() && isAdmin();
-
-      match /ingestion_jobs/{jobId} {
-        allow get, list: if isAdmin();
-        allow create, update, delete: if isExistingDocument() && isAdmin();
-      }
-
-      match /raw_source_records/{recordId} {
-        allow get, list: if isAdmin();
-        allow create, update, delete: if isExistingDocument() && isAdmin();
+      allow create, update: if isOwner(userId);
+      allow delete: if isAdmin();
+      
+      // User lists are only accessible by the owner.
+      match /lists/{listId} {
+        allow read, write: if isOwner(userId);
       }
     }
 
-    /**
-     * @description User-submitted change requests for moderation.
-     * @path /change_requests/{changeRequestId}
-     * @allow (create) A signed-in user submitting a change request.
-     * @deny (get) A user trying to view a change request from another user.
-     * @allow (update) A moderator or admin processing the request.
-     * @principle Shared access model where the submitter can create/read, and staff manage the lifecycle.
-     */
-    match /change_requests/{changeRequestId} {
-      allow get: if isSignedIn() && (isResourceOwner(resource.data.userId) || isStaff());
-      allow list: if isStaff();
-      allow create: if isSignedIn() && isResourceOwner(request.resource.data.userId);
-      allow update: if isExistingDocument() && isStaff();
-      allow delete: if isExistingDocument() && isAdmin();
-    }
-
-    /**
-     * @description Centralized queue for items requiring moderation.
-     * @path /moderation_queue/{queueItemId}
-     * @allow (get) An admin or moderator viewing an item in the queue.
-     * @allow (get) A moderator viewing an item specifically assigned to them.
-     * @deny (get) A regular user trying to access the moderation queue.
-     * @principle Restricts access to a workflow tool to authorized staff members only.
-     */
-    match /moderation_queue/{queueItemId} {
-      allow get, list: if isStaff();
-      allow create, update, delete: if isExistingDocument() && isStaff();
-    }
-
-    /**
-     * @description User-submitted reports about content or data issues.
-     * @path /reports/{reportId}
-     * @allow (create) A signed-in user submitting a report.
-     * @deny (get) A user trying to view a report filed by another user.
-     * @allow (update) A moderator or admin processing the report.
-     * @principle Shared access model where the reporter can create/read, and staff manage the resolution.
-     */
-    match /reports/{reportId} {
-      allow get: if isSignedIn() && (isResourceOwner(resource.data.reportingUserId) || isStaff());
-      allow list: if isStaff();
-      allow create: if isSignedIn() && isResourceOwner(request.resource.data.reportingUserId);
-      allow update: if isExistingDocument() && isStaff();
-      allow delete: if isExistingDocument() && isAdmin();
+    // Claims can be created by any signed-in user, but only read/updated by admins.
+    match /claims/{claimId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
     }
   }
 }

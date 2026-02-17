@@ -13,11 +13,12 @@ import {
 } from 'lucide-react';
 import type { Business, Category, Tag } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { WithId } from '@/firebase';
 
 interface BusinessCardProps {
-  business: Business;
-  category?: Category;
-  tags: Tag[];
+  business: WithId<Business>;
+  category?: WithId<Category>;
+  tags: WithId<Tag>[];
 }
 
 export default function BusinessCard({
@@ -28,9 +29,9 @@ export default function BusinessCard({
   const logo = PlaceHolderImages.find((img) => img.id === business.logo_id);
   const isOpen = true; // Mock status
 
-  const relevantHours = Object.values(business.opening_hours).find((h) =>
+  const relevantHours = business.opening_hours ? Object.values(business.opening_hours).find((h) =>
     h.includes(' - ')
-  );
+  ) : null;
   const closingTime = relevantHours ? relevantHours.split(' - ')[1] : null;
 
   return (
@@ -38,7 +39,7 @@ export default function BusinessCard({
       <div className="md:w-1/3 relative">
         <Link href={`/b/${business.slug}`}>
           <div className="aspect-[4/3] relative">
-            {logo && (
+            {logo ? (
               <Image
                 src={logo.imageUrl}
                 alt={business.name_en}
@@ -46,6 +47,10 @@ export default function BusinessCard({
                 className="object-cover"
                 data-ai-hint="business logo"
               />
+            ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <p className="text-xs text-muted-foreground">No Logo</p>
+                </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
             <div className="absolute bottom-2 left-2">
@@ -78,7 +83,7 @@ export default function BusinessCard({
             </div>
             <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
               <Star className="h-4 w-4" />
-              <span>{business.rating.toFixed(1)}</span>
+              <span>{business.rating?.toFixed(1) || 'N/A'}</span>
             </div>
           </div>
           <div className="text-sm text-muted-foreground mt-2 flex items-center">
@@ -100,12 +105,12 @@ export default function BusinessCard({
                 &bull; Closes at {closingTime}
               </span>
             )}
-            <span className="text-muted-foreground font-bold">
+            {business.price_range && <span className="text-muted-foreground font-bold">
               &bull; {business.price_range}
-            </span>
+            </span>}
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {tags.map((tag) => (
+            {tags?.map((tag) => (
               <Badge key={tag.id} variant="secondary">
                 {tag.name_en}
               </Badge>
@@ -123,7 +128,7 @@ export default function BusinessCard({
               Call
             </a>
           </Button>
-          <Button asChild variant="outline" size="sm">
+          {business.website && <Button asChild variant="outline" size="sm">
             <a
               href={business.website}
               target="_blank"
@@ -132,7 +137,7 @@ export default function BusinessCard({
               <Globe className="mr-2 h-4 w-4" />
               Website
             </a>
-          </Button>
+          </Button>}
         </div>
       </div>
     </Card>

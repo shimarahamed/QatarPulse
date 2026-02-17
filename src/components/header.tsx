@@ -17,9 +17,13 @@ import {
   UserCircle,
   Globe,
   LayoutDashboard,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useFirebase } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { toast } from '@/hooks/use-toast';
 
 const navLinks = [
   { href: '/search', label: 'Search' },
@@ -28,7 +32,23 @@ const navLinks = [
 ];
 
 export function Header() {
-  const isAuthenticated = true; // Mock authentication state
+  const { user, isUserLoading, auth } = useFirebase();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred during logout. Please try again.',
+      });
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -85,7 +105,6 @@ export function Header() {
           </SheetContent>
         </Sheet>
 
-        {/* Mobile Logo */}
         <div className="flex md:hidden flex-1 justify-center">
            <Link href="/" className="flex items-center space-x-2">
             <Logo className="h-8 w-auto text-primary" />
@@ -123,39 +142,46 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
+          {!isUserLoading && (
+            <>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || ''} />
+                        <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/account">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/favorites">Favorites</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild className='hidden sm:inline-flex'>
+                  <Link href="/login">Login</Link>
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/account">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account/favorites">Favorites</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Dashboard</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button asChild className='hidden sm:inline-flex'>
-              <Link href="/login">Login</Link>
-            </Button>
+              )}
+            </>
           )}
         </div>
       </div>

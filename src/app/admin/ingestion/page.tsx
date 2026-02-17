@@ -20,7 +20,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -29,6 +28,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, Save } from 'lucide-react';
+import { useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   rawData: z.string().min(10, {
@@ -37,10 +38,12 @@ const formSchema = z.object({
 });
 
 export default function IngestionPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isNormalizing, setIsNormalizing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [normalizedData, setNormalizedData] =
     useState<NormalizeIngestedBusinessDataOutput | null>(null);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,7 +53,7 @@ export default function IngestionPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
+    setIsNormalizing(true);
     setNormalizedData(null);
     try {
       const result = await normalizeIngestedBusinessData({
@@ -71,16 +74,40 @@ export default function IngestionPage() {
           'An error occurred while processing the data. Please try again.',
       });
     } finally {
-      setIsLoading(false);
+      setIsNormalizing(false);
     }
   }
 
-  const handleSave = () => {
-    // This is where you would save to Firestore
-    toast({
-      title: 'Save Requested',
-      description: 'Saving to database is not implemented yet.',
-    });
+  const handleSave = async () => {
+    if (!normalizedData || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No data to save or database not available.'});
+        return;
+    }
+    setIsSaving(true);
+    try {
+        const businessesCol = collection(firestore, 'businesses');
+        const dataToSave = {
+            ...normalizedData,
+            slug: normalizedData.name_en?.toLowerCase().replace(/\s+/g, '-') || `business-${Date.now()}`,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        }
+        await addDocumentNonBlocking(businessesCol, dataToSave);
+        toast({
+            title: 'Business Saved',
+            description: `${normalizedData.name_en} has been added to the database.`,
+        });
+        setNormalizedData(null);
+        form.reset();
+    } catch (e: any) {
+         toast({
+            variant: "destructive",
+            title: "Uh oh! Something went wrong.",
+            description: e.message || "Could not save business.",
+        });
+    } finally {
+        setIsSaving(false);
+    }
   }
 
   return (
@@ -118,8 +145,8 @@ export default function IngestionPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
+              <Button type="submit" disabled={isNormalizing || isSaving}>
+                {isNormalizing ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -145,8 +172,9 @@ export default function IngestionPage() {
             </pre>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleSave}>
-              <Save className="mr-2 h-4 w-4" /> Save Business
+            <Button onClick={handleSave} disabled={isSaving || isNormalizing}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+               Save Business
             </Button>
           </CardFooter>
         </Card>

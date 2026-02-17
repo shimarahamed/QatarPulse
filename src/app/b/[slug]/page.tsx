@@ -1,4 +1,5 @@
-import { businesses, categories, tags } from '@/lib/data';
+'use client';
+
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -26,24 +27,186 @@ import {
   Clock,
   CheckCircle2,
   MessageCircle,
+  Heart,
 } from 'lucide-react';
+import type { Business, Category, Tag } from '@/lib/types';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  useUser,
+  WithId,
+} from '@/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  getDoc,
+  setDoc,
+} from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { iconMap } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function BusinessProfilePage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const business = businesses.find((b) => b.slug === params.slug);
+  const [business, setBusiness] = useState<WithId<Business> | null>(null);
+  const [category, setCategory] = useState<WithId<Category> | null>(null);
+  const [tags, setTags] = useState<WithId<Tag>[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!business) {
-    notFound();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!firestore) return;
+
+    const fetchBusinessData = async () => {
+      setIsLoading(true);
+      const q = query(
+        collection(firestore, 'businesses'),
+        where('slug', '==', params.slug),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        notFound();
+        return;
+      }
+
+      const bizDoc = querySnapshot.docs[0];
+      const bizData = { ...bizDoc.data(), id: bizDoc.id } as WithId<Business>;
+      setBusiness(bizData);
+
+      // Fetch category
+      if (bizData.category_id) {
+        const catDoc = await getDoc(
+          doc(firestore, 'categories', bizData.category_id)
+        );
+        if (catDoc.exists()) {
+          setCategory({ ...catDoc.data(), id: catDoc.id } as WithId<Category>);
+        }
+      }
+
+      // Fetch tags
+      if (bizData.tag_ids && bizData.tag_ids.length > 0) {
+        const tagsQuery = query(
+          collection(firestore, 'tags'),
+          where('__name__', 'in', bizData.tag_ids)
+        );
+        const tagsSnapshot = await getDocs(tagsQuery);
+        setTags(
+          tagsSnapshot.docs.map(
+            (d) => ({ ...d.data(), id: d.id } as WithId<Tag>)
+          )
+        );
+      }
+      
+      setIsLoading(false);
+    };
+
+    fetchBusinessData();
+  }, [firestore, params.slug]);
+
+  // Check if it's a favorite
+  useEffect(() => {
+    if (user && business) {
+        const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
+        getDoc(favListRef).then(docSnap => {
+            if (docSnap.exists() && docSnap.data().businessIds?.includes(business.id)) {
+                setIsFavorite(true);
+            } else {
+                setIsFavorite(false);
+            }
+        });
+    }
+  }, [user, business, firestore]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Not signed in",
+            description: "You need to be signed in to add favorites.",
+        })
+        return;
+    }
+    if (!business) return;
+
+    const favListRef = doc(firestore, `users/${user.uid}/lists/favorites`);
+    
+    try {
+        if(isFavorite) {
+            await updateDoc(favListRef, {
+                businessIds: arrayRemove(business.id)
+            });
+            toast({ title: "Removed from Favorites"});
+        } else {
+             await setDoc(favListRef, {
+                name: "Favorites",
+                businessIds: arrayUnion(business.id)
+            }, { merge: true });
+            toast({ title: "Added to Favorites" });
+        }
+        setIsFavorite(!isFavorite);
+    } catch(e) {
+        console.error("Error updating favorites", e);
+        toast({ variant: "destructive", title: "Error", description: "Could not update favorites."});
+    }
+  };
+
+
+  if (isLoading) {
+    return (
+        <div className="bg-secondary">
+            <div className="container mx-auto px-4 md:px-6 py-8">
+                 <div className="grid md:grid-cols-3 gap-8">
+                    <div className="md:col-span-2">
+                        <Card>
+                            <Skeleton className="w-full aspect-[16/9] rounded-t-lg" />
+                            <div className="p-6">
+                                <Skeleton className="h-6 w-1/4 mb-2" />
+                                <Skeleton className="h-10 w-3/4 mb-2" />
+                                <Skeleton className="h-5 w-1/2 mb-6" />
+                                <Skeleton className="h-24 w-full" />
+                            </div>
+                        </Card>
+                    </div>
+                     <div className="space-y-6">
+                        <Card>
+                            <CardContent className="p-6 space-y-4">
+                                <Skeleton className="h-6 w-full" />
+                                <Skeleton className="h-6 w-full" />
+                                <Skeleton className="h-10 w-full mt-4" />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
   }
 
-  const category = categories.find((c) => c.id === business.category_id);
-  const businessTags = tags.filter((t) => business.tag_ids.includes(t.id));
-  const galleryImages = business.image_ids.map(
+  if (!business) {
+    return notFound();
+  }
+
+  const galleryImages = business.image_ids?.map(
     (id) => PlaceHolderImages.find((img) => img.id === id)!
-  );
+  ) || [];
   const mapImage = PlaceHolderImages.find(
     (img) => img.id === 'map-placeholder'
   );
@@ -55,25 +218,31 @@ export default function BusinessProfilePage({
           <div className="md:col-span-2">
             <Card>
               <CardContent className="p-0">
-                <Carousel className="w-full">
-                  <CarouselContent>
-                    {galleryImages.map((image, index) => (
-                      <CarouselItem key={index}>
-                        <div className="aspect-[16/9] relative rounded-t-lg overflow-hidden">
-                          <Image
-                            src={image.imageUrl}
-                            alt={image.description}
-                            fill
-                            className="object-cover"
-                            data-ai-hint={image.imageHint}
-                          />
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="left-4" />
-                  <CarouselNext className="right-4" />
-                </Carousel>
+                {galleryImages.length > 0 ? (
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {galleryImages.map((image, index) => (
+                        <CarouselItem key={index}>
+                          <div className="aspect-[16/9] relative rounded-t-lg overflow-hidden">
+                            <Image
+                              src={image.imageUrl}
+                              alt={image.description}
+                              fill
+                              className="object-cover"
+                              data-ai-hint={image.imageHint}
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-4" />
+                    <CarouselNext className="right-4" />
+                  </Carousel>
+                ) : (
+                  <div className="aspect-[16/9] relative rounded-t-lg overflow-hidden bg-muted flex items-center justify-center">
+                    <p className="text-muted-foreground">No images available</p>
+                  </div>
+                )}
               </CardContent>
               <div className="p-6">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start">
@@ -90,19 +259,19 @@ export default function BusinessProfilePage({
                       {business.name_ar}
                     </h2>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-2 sm:mt-0 text-amber-500">
-                    {[...Array(Math.floor(business.rating))].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 fill-current" />
-                    ))}
-                    {[...Array(5 - Math.floor(business.rating))].map((_, i) => (
-                      <Star key={i} className="h-5 w-5" />
-                    ))}
-                    <span className="text-foreground font-bold text-lg ml-2">
-                      {business.rating.toFixed(1)}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      ({business.review_count} reviews)
-                    </span>
+                   <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                    <Button variant="ghost" size="icon" onClick={toggleFavorite} disabled={isUserLoading}>
+                      <Heart className={cn("h-6 w-6", isFavorite && "fill-red-500 text-red-500")} />
+                    </Button>
+                    <div className="flex items-center gap-1.5 text-amber-500">
+                        <Star className="h-5 w-5 fill-current" />
+                        <span className="text-foreground font-bold text-lg ml-1">
+                        {business.rating?.toFixed(1)}
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                        ({business.review_count} reviews)
+                        </span>
+                    </div>
                   </div>
                 </div>
 
@@ -129,7 +298,7 @@ export default function BusinessProfilePage({
                     Services & Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {businessTags.map((tag) => (
+                    {tags.map((tag) => (
                       <Badge key={tag.id} variant="outline">
                         {tag.name_en}
                       </Badge>
@@ -161,50 +330,56 @@ export default function BusinessProfilePage({
                     {business.phone}
                   </a>
                 </div>
-                <div className="flex items-center">
-                  <Globe className="h-5 w-5 mr-3 text-muted-foreground" />
-                  <a
-                    href={business.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline text-primary"
-                  >
-                    {business.website.replace('https://', '')}
-                  </a>
-                </div>
+                {business.website &&
+                    <div className="flex items-center">
+                    <Globe className="h-5 w-5 mr-3 text-muted-foreground" />
+                    <a
+                        href={business.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-primary"
+                    >
+                        {business.website.replace('https://', '')}
+                    </a>
+                    </div>
+                }
                 <Separator />
                 <div className="flex flex-col gap-4 pt-2">
-                  <Button>
-                    <Phone className="h-4 w-4 mr-2" /> Call Now
+                  <Button asChild>
+                    <a href={`tel:${business.phone}`}><Phone className="h-4 w-4 mr-2" /> Call Now</a>
                   </Button>
                   <Button variant="secondary">
                     <MessageCircle className="h-4 w-4 mr-2" /> Send Message
                   </Button>
-                  <Button variant="outline">Claim this Business</Button>
+                  <Button variant="outline" asChild>
+                    <Link href={`/claim?businessId=${business.id}`}>Claim this Business</Link>
+                    </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
-                  Opening Hours
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  {Object.entries(business.opening_hours).map(
-                    ([day, hours]) => (
-                      <li key={day} className="flex justify-between">
-                        <span className="text-muted-foreground">{day}</span>
-                        <span className="font-medium">{hours}</span>
-                      </li>
-                    )
-                  )}
-                </ul>
-              </CardContent>
-            </Card>
+            {business.opening_hours &&
+                <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center">
+                    <Clock className="h-5 w-5 mr-2" />
+                    Opening Hours
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ul className="space-y-2 text-sm">
+                    {Object.entries(business.opening_hours).map(
+                        ([day, hours]) => (
+                        <li key={day} className="flex justify-between">
+                            <span className="text-muted-foreground capitalize">{day}</span>
+                            <span className="font-medium">{hours}</span>
+                        </li>
+                        )
+                    )}
+                    </ul>
+                </CardContent>
+                </Card>
+            }
 
             <Card className="overflow-hidden">
               <CardHeader>

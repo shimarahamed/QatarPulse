@@ -7,12 +7,20 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Github } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Loader2 } from 'lucide-react';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from 'firebase/auth';
+import { useFirebase } from '@/firebase';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean;
@@ -20,6 +28,7 @@ interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const userAuthSchema = z.object({
   email: z.string().email(),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 
 type UserAuthFormData = z.infer<typeof userAuthSchema>;
@@ -38,31 +47,73 @@ export function UserAuthForm({
   });
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState<boolean>(false);
-  const searchParams = useSearchParams();
+  const { auth, firestore } = useFirebase();
+
+  const handleAuthSuccess = async (userCredential: any) => {
+    const user = userCredential.user;
+    if (isSignUp && user) {
+        const userRef = doc(firestore, "users", user.uid);
+        await setDoc(userRef, {
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            role: "user",
+            createdAt: serverTimestamp(),
+        }, { merge: true });
+    }
+    toast({
+      title: isSignUp ? 'Account created' : 'Signed in',
+      description: isSignUp
+        ? 'Welcome! You can now access all features.'
+        : 'Welcome back!',
+    });
+    // Redirect or update UI
+  };
+
+  const handleAuthError = (error: any) => {
+    toast({
+      title: 'Authentication Failed',
+      description: error.message || 'An unknown error occurred.',
+      variant: 'destructive',
+    });
+  };
 
   const onSubmit = async (data: UserAuthFormData) => {
     setIsLoading(true);
-
-    const signInResult = await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({ ok: true });
-      }, 1000);
-    });
-
-    setIsLoading(false);
-
-    if (!signInResult?.ok) {
-      return toast({
-        title: 'Something went wrong.',
-        description: 'Your sign in request failed. Please try again.',
-        variant: 'destructive',
-      });
+    try {
+      let userCredential;
+      if (isSignUp) {
+        userCredential = await createUserWithEmailAndPassword(
+          auth,
+          data.email,
+          data.password
+        );
+      } else {
+        userCredential = await signInWithEmailAndPassword(
+          auth,
+          data.email,
+          data.password
+        );
+      }
+      await handleAuthSuccess(userCredential);
+    } catch (error) {
+      handleAuthError(error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    return toast({
-      title: 'Check your email',
-      description: 'We sent you a login link. Be sure to check your spam too.',
-    });
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const userCredential = await signInWithPopup(auth, provider);
+      await handleAuthSuccess(userCredential);
+    } catch (error) {
+      handleAuthError(error);
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -94,7 +145,13 @@ export function UserAuthForm({
               placeholder="********"
               type="password"
               disabled={isLoading || isGoogleLoading}
+              {...register('password')}
             />
+            {errors?.password && (
+              <p className="px-1 text-xs text-destructive">
+                {errors.password.message}
+              </p>
+            )}
           </div>
           <Button disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -115,9 +172,7 @@ export function UserAuthForm({
       <Button
         type="button"
         variant="outline"
-        onClick={() => {
-          setIsGoogleLoading(true);
-        }}
+        onClick={handleGoogleSignIn}
         disabled={isLoading || isGoogleLoading}
       >
         {isGoogleLoading ? (
