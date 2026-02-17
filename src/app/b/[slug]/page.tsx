@@ -76,17 +76,19 @@ export default function BusinessProfilePage({
   useEffect(() => {
     if (!firestore) return;
 
-    const fetchBusinessData = async () => {
-      setIsLoading(true);
-      try {
-        const q = query(
-          collection(firestore, 'businesses'),
-          where('slug', '==', params.slug),
-          limit(1)
-        );
-        const querySnapshot = await getDocs(q);
+    setIsLoading(true);
 
+    const businessesCol = collection(firestore, 'businesses');
+    const q = query(
+      businessesCol,
+      where('slug', '==', params.slug),
+      limit(1)
+    );
+
+    getDocs(q)
+      .then((querySnapshot) => {
         if (querySnapshot.empty) {
+          setIsLoading(false);
           notFound();
           return;
         }
@@ -95,43 +97,61 @@ export default function BusinessProfilePage({
         const bizData = { ...bizDoc.data(), id: bizDoc.id } as WithId<Business>;
         setBusiness(bizData);
 
-        // Fetch category
+        // Chain promises for fetching related data
         if (bizData.category_id) {
-          const catDoc = await getDoc(
-            doc(firestore, 'categories', bizData.category_id)
-          );
-          if (catDoc.exists()) {
-            setCategory({ ...catDoc.data(), id: catDoc.id } as WithId<Category>);
-          }
+          const catRef = doc(firestore, 'categories', bizData.category_id);
+          getDoc(catRef)
+            .then((catDoc) => {
+              if (catDoc && catDoc.exists()) {
+                setCategory({
+                  ...catDoc.data(),
+                  id: catDoc.id,
+                } as WithId<Category>);
+              }
+            })
+            .catch((error) => {
+              const contextualError = new FirestorePermissionError({
+                operation: 'get',
+                path: catRef.path,
+              });
+              errorEmitter.emit('permission-error', contextualError);
+            });
         }
 
-        // Fetch tags
         if (bizData.tag_ids && bizData.tag_ids.length > 0) {
           const tagsQuery = query(
             collection(firestore, 'tags'),
             where('__name__', 'in', bizData.tag_ids)
           );
-          const tagsSnapshot = await getDocs(tagsQuery);
-          setTags(
-            tagsSnapshot.docs.map(
-              (d) => ({ ...d.data(), id: d.id } as WithId<Tag>)
-            )
-          );
+          getDocs(tagsQuery)
+            .then((tagsSnapshot) => {
+              if (tagsSnapshot) {
+                setTags(
+                  tagsSnapshot.docs.map(
+                    (d) => ({ ...d.data(), id: d.id } as WithId<Tag>)
+                  )
+                );
+              }
+            })
+            .catch((error) => {
+              const contextualError = new FirestorePermissionError({
+                operation: 'list',
+                path: 'tags',
+              });
+              errorEmitter.emit('permission-error', contextualError);
+            });
         }
-      } catch (e: any) {
-        if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
-          const contextualError = new FirestorePermissionError({
-            operation: 'list',
-            path: `businesses`,
-          });
-          errorEmitter.emit('permission-error', contextualError);
-        }
-      } finally {
+      })
+      .catch((error) => {
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: 'businesses',
+        });
+        errorEmitter.emit('permission-error', contextualError);
+      })
+      .finally(() => {
         setIsLoading(false);
-      }
-    };
-
-    fetchBusinessData();
+      });
   }, [firestore, params.slug]);
 
   // Check if it's a favorite
@@ -150,13 +170,11 @@ export default function BusinessProfilePage({
           }
         })
         .catch((e) => {
-          if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
-            const contextualError = new FirestorePermissionError({
-              operation: 'get',
-              path: favListRef.path,
-            });
-            errorEmitter.emit('permission-error', contextualError);
-          }
+          const contextualError = new FirestorePermissionError({
+            operation: 'get',
+            path: favListRef.path,
+          });
+          errorEmitter.emit('permission-error', contextualError);
         });
     }
   }, [user, business, firestore]);
