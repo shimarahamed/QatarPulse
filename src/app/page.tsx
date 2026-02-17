@@ -11,13 +11,13 @@ import {
 import { ArrowRight, Building2, Search, UtensilsCrossed } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
-import { redirect } from 'next/navigation';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import type { Category } from '@/lib/types';
 import { iconMap } from '@/lib/data';
 import { collection, query, limit } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { searchAction } from './actions';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'hero');
@@ -29,12 +29,6 @@ export default function Home() {
   }, [firestore]);
   
   const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
-
-  async function searchAction(formData: FormData) {
-    'use server';
-    const query = formData.get('query') as string;
-    redirect(`/search?q=${query}`);
-  }
 
   return (
     <div className="flex flex-col">
