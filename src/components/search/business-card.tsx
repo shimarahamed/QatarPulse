@@ -28,6 +28,11 @@ export default function BusinessCard({
   const logo = PlaceHolderImages.find((img) => img.id === business.logo_id);
   const isOpen = true; // Mock status
 
+  const relevantHours = Object.values(business.opening_hours).find((h) =>
+    h.includes(' - ')
+  );
+  const closingTime = relevantHours ? relevantHours.split(' - ')[1] : null;
+
   return (
     <Card className="flex flex-col md:flex-row overflow-hidden transition-shadow hover:shadow-lg">
       <div className="md:w-1/3 relative">
@@ -90,9 +95,11 @@ export default function BusinessCard({
               <Clock className="h-4 w-4" />
               <span className="font-medium">{isOpen ? 'Open' : 'Closed'}</span>
             </div>
-            <span className="text-muted-foreground">
-              &bull; Closes at {business.opening_hours['Sat-Thu'].split(' - ')[1]}
-            </span>
+            {closingTime && (
+              <span className="text-muted-foreground">
+                &bull; Closes at {closingTime}
+              </span>
+            )}
             <span className="text-muted-foreground font-bold">
               &bull; {business.price_range}
             </span>
@@ -117,7 +124,11 @@ export default function BusinessCard({
             </a>
           </Button>
           <Button asChild variant="outline" size="sm">
-            <a href={business.website} target="_blank" rel="noopener noreferrer">
+            <a
+              href={business.website}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Globe className="mr-2 h-4 w-4" />
               Website
             </a>
