@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "Doha skyline at dusk",
+      "imageUrl": "https://images.unsplash.com/photo-1685113872064-de4180a0ea93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxkb2hhJTIwc2t5bGluZXxlbnwwfHx8fDE3NzEyMjQ5ODF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doha skyline"
+    },
+    {
+      "id": "business-logo-1",
+      "description": "Generic business logo 1",
+      "imageUrl": "https://images.unsplash.com/photo-1660602880433-dd978d9ec9f9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxsb2dvJTIwYnJhbmR8ZW58MHx8fHwxNzcxMjQ0NjA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "logo brand"
+    },
+    {
+      "id": "business-logo-2",
+      "description": "Generic business logo 2",
+      "imageUrl": "https://images.unsplash.com/photo-1760138270903-d95903188730?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxsb2dvJTIwYnJhbmR8ZW58MHx8fHwxNzcxMjQ0NjA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "logo brand"
+    },
+    {
+      "id": "business-logo-3",
+      "description": "Generic business logo 3",
+      "imageUrl": "https://images.unsplash.com/photo-1707960119803-3b2880e847b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxsb2dvJTIwYnJhbmR8ZW58MHx8fHwxNzcxMjQ0NjA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "logo brand"
+    },
+    {
+      "id": "business-profile-1",
+      "description": "Interior of a modern cafe",
+      "imageUrl": "https://images.unsplash.com/photo-1588253137728-1e4dd0fe9a93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjYWZlJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzcxMjc5MDczfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cafe interior"
+    },
+    {
+      "id": "business-profile-2",
+      "description": "Retail clothing store display",
+      "imageUrl": "https://images.unsplash.com/photo-1441986300917-64674bd600d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjbG90aGluZyUyMHN0b3JlfGVufDB8fHx8MTc3MTIyNzYzOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clothing store"
+    },
+    {
+      "id": "business-profile-3",
+      "description": "Professional office workspace",
+      "imageUrl": "https://images.unsplash.com/photo-1497215728101-856f4ea42174?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxvZmZpY2UlMjB3b3Jrc3BhY2V8ZW58MHx8fHwxNzcxMzE0NzQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "office workspace"
+    },
+    {
+      "id": "business-profile-4",
+      "description": "Front of a local pharmacy",
+      "imageUrl": "https://images.unsplash.com/photo-1621745490720-bc825c1a5167?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwaGFybWFjeSUyMHNob3B8ZW58MHx8fHwxNzcxMzE0NzQ0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pharmacy shop"
+    },
+    {
+      "id": "business-profile-5",
+      "description": "Supermarket aisle with groceries",
+      "imageUrl": "https://images.unsplash.com/photo-1585861299373-491140ca920e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdXBlcm1hcmtldCUyMGFpc2xlfGVufDB8fHx8MTc3MTMxNDc0NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "supermarket aisle"
+    },
+    {
+      "id": "map-placeholder",
+      "description": "A placeholder map view showing streets and locations",
+      "imageUrl": "https://images.unsplash.com/photo-1620257819748-e6d4a59f2ac3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYXAlMjBjaXR5fGVufDB8fHx8MTc3MTI3MDY4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "map city"
+    }
+  ]
 }
