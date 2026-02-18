@@ -16,7 +16,7 @@ import {
   WithId,
 } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Business } from '@/lib/types';
+import type { Business, Tag } from '@/lib/types';
 import BusinessCard from '@/components/search/business-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -31,9 +31,13 @@ function OwnedBusinessesList() {
     return query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid));
   }, [user, firestore]);
 
-  const { data: ownedBusinesses, isLoading } = useCollection<Business>(ownedBusinessesQuery);
+  const { data: ownedBusinesses, isLoading: isLoadingBusinesses } = useCollection<Business>(ownedBusinessesQuery);
 
-  if (isUserLoading || isLoading) {
+  const tagsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'tags') : null, [firestore]);
+  const { data: allTags, isLoading: isLoadingTags } = useCollection<Tag>(tagsQuery);
+
+
+  if (isUserLoading || isLoadingBusinesses || isLoadingTags) {
     return <Skeleton className="h-48 w-full" />;
   }
 
@@ -77,9 +81,10 @@ function OwnedBusinessesList() {
 
   return (
     <div className="space-y-4">
-      {ownedBusinesses?.map((biz) => (
-        <BusinessCard key={biz.id} business={biz} tags={[]} />
-      ))}
+      {ownedBusinesses?.map((biz) => {
+        const businessTags = allTags?.filter((t) => biz.tag_ids?.includes(t.id)) || [];
+        return <BusinessCard key={biz.id} business={biz} tags={businessTags} isOwner={true} />
+      })}
     </div>
   );
 }

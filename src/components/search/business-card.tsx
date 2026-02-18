@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Phone,
   Globe,
+  Pencil,
 } from 'lucide-react';
 import type { Business, Category, Tag } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -19,12 +20,14 @@ interface BusinessCardProps {
   business: WithId<Business>;
   category?: WithId<Category>;
   tags: WithId<Tag>[];
+  isOwner?: boolean;
 }
 
 export default function BusinessCard({
   business,
   category,
   tags,
+  isOwner = false,
 }: BusinessCardProps) {
   const logo = PlaceHolderImages.find((img) => img.id === business.logo_id);
   const isOpen = true; // Mock status
@@ -122,6 +125,14 @@ export default function BusinessCard({
           <Button asChild size="sm">
             <Link href={`/b/${business.slug}`}>View Profile</Link>
           </Button>
+           {isOwner && (
+            <Button asChild variant="secondary" size="sm">
+                <Link href={`/account/my-businesses/${business.id}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                </Link>
+            </Button>
+        )}
           <Button asChild variant="outline" size="sm">
             <a href={`tel:${business.phone}`}>
               <Phone className="mr-2 h-4 w-4" />
