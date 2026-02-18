@@ -64,7 +64,7 @@
         "email": { "type": "string", "format": "email" },
         "displayName": { "type": "string" },
         "photoURL": { "type": "string", "format": "uri" },
-        "role": { "type": "string", "enum": ["user", "admin"], "default": "user" },
+        "role": { "type": "string", "enum": ["user", "admin", "business-owner"], "default": "user" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["email", "role", "createdAt"]

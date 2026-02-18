@@ -50,10 +50,12 @@ export default function AdminClaimsPage() {
     try {
       const claimRef = doc(firestore, 'claims', claim.id);
       const businessRef = doc(firestore, 'businesses', claim.businessId);
+      const userRef = doc(firestore, 'users', claim.claimerId);
 
       const batch = writeBatch(firestore);
       batch.update(claimRef, { status: 'approved' });
       batch.update(businessRef, { ownerId: claim.claimerId });
+      batch.update(userRef, { role: 'business-owner' });
       await batch.commit();
 
       toast({

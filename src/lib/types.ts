@@ -51,7 +51,7 @@ export type UserProfile = {
   email: string;
   displayName?: string;
   photoURL?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'business-owner';
   createdAt: Timestamp;
 };
 

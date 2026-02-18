@@ -18,8 +18,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, WithId, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -29,11 +29,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 export default function AdminUsersPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -41,6 +50,40 @@ export default function AdminUsersPage() {
   }, [firestore]);
 
   const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
+
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'user' | 'business-owner') => {
+    if (!firestore) return;
+    setIsUpdating(userId);
+    try {
+        const userRef = doc(firestore, 'users', userId);
+        updateDocumentNonBlocking(userRef, { role: newRole });
+        toast({
+            title: 'User Role Updated',
+            description: `User has been updated to ${newRole}.`
+        });
+    } catch (e: any) {
+         toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: e.message || "Could not update user role.",
+        });
+    } finally {
+        setIsUpdating(null);
+    }
+  }
+
+  const getRoleVariant = (role: UserProfile['role']) => {
+    switch (role) {
+      case 'admin':
+        return 'default';
+      case 'business-owner':
+        return 'secondary';
+      case 'user':
+      default:
+        return 'outline';
+    }
+  };
+
 
   return (
     <Card>
@@ -103,7 +146,7 @@ export default function AdminUsersPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
+                  <Badge variant={getRoleVariant(user.role)}>{user.role}</Badge>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                     {user.createdAt ? user.createdAt.toDate().toLocaleDateString() : 'N/A'}
@@ -111,16 +154,23 @@ export default function AdminUsersPage() {
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                      <Button aria-haspopup="true" size="icon" variant="ghost" disabled={isUpdating === user.id}>
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Toggle menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>
-                        {user.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
-                      </DropdownMenuItem>
+                       <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Change Role</DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                            <DropdownMenuSubContent>
+                                <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'admin')} disabled={user.role === 'admin'}>Admin</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'business-owner')} disabled={user.role === 'business-owner'}>Business Owner</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleRoleChange(user.id, 'user')} disabled={user.role === 'user'}>User</DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                       </DropdownMenuSub>
                       <DropdownMenuSeparator />
                        <DropdownMenuItem className="text-destructive">
                         Delete User
