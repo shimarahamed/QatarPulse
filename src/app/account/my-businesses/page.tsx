@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Briefcase, PlusCircle } from 'lucide-react';
+import { Briefcase, Search } from 'lucide-react';
 import {
   useUser,
   useFirestore,
@@ -62,12 +62,12 @@ function OwnedBusinessesList() {
             You don't own any businesses yet.
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Claim an existing business or submit a new one to get started.
+            Find your business on our directory to claim it and get started.
           </p>
            <Button asChild className="mt-4">
-              <Link href="/claim">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Claim a Business
+              <Link href="/search">
+                <Search className="mr-2 h-4 w-4" />
+                Find Your Business to Claim
               </Link>
             </Button>
         </CardContent>

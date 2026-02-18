@@ -46,6 +46,16 @@ export default function AdminClaimsPage() {
 
   const handleApprove = async (claim: WithId<BusinessClaim>) => {
     if (!firestore) return;
+
+    if (!claim.businessId || claim.businessId === 'unknown') {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Approve Claim',
+        description: 'This claim is not linked to a valid business ID. It should be rejected.',
+      });
+      return;
+    }
+
     setIsUpdating(claim.id);
     try {
       const claimRef = doc(firestore, 'claims', claim.id);
