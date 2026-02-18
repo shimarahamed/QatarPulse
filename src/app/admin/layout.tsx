@@ -2,13 +2,12 @@
 
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { doc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { UserProfile } from '@/lib/types';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -19,34 +18,67 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, `users/${user.uid}`);
-  }, [user, firestore]);
-
-  const { data: userProfile, isLoading: isProfileLoading } =
-    useDoc<UserProfile>(userProfileRef);
+  
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
 
   useEffect(() => {
-    if (isUserLoading || isProfileLoading) return;
+    // Wait until we know who the user is and have a firestore instance.
+    if (isUserLoading || !firestore) {
+      return;
+    }
 
+    // If there is no user, they can't be an admin.
     if (!user) {
+      setIsAdmin(false);
+      setIsCheckingRole(false);
       router.replace('/login');
       return;
     }
 
-    if (userProfile?.role !== 'admin') {
-      toast({
-        variant: 'destructive',
-        title: 'Access Denied',
-        description: 'You do not have permission to access the admin area.',
-      });
-      router.replace('/account');
-    }
-  }, [user, userProfile, isUserLoading, isProfileLoading, router, toast]);
+    const checkAdminRole = async () => {
+      const userProfileRef = doc(firestore, `users/${user.uid}`);
+      try {
+        const docSnap = await getDoc(userProfileRef);
+        if (docSnap.exists() && docSnap.data().role === 'admin') {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+          toast({
+            variant: 'destructive',
+            title: 'Access Denied',
+            description: 'You do not have permission to access the admin area.',
+          });
+          router.replace('/account');
+        }
+      } catch (error) {
+        console.error("Error checking admin role:", error);
+        setIsAdmin(false);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not verify user permissions.',
+        });
+        router.replace('/account');
+      } finally {
+        setIsCheckingRole(false);
+      }
+    };
 
-  if (isUserLoading || isProfileLoading || userProfile?.role !== 'admin') {
+    checkAdminRole();
+  }, [user, isUserLoading, firestore, router, toast]);
+
+  if (isUserLoading || isCheckingRole) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    // This is a fallback. The useEffect should have already redirected.
+    // It prevents a flash of content if the redirect is slow.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
