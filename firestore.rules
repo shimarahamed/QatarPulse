@@ -50,5 +50,13 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow read, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+
+    // Ingestion sources and jobs are admin-only
+    match /ingestion_sources/{sourceId} {
+      allow read, write, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /ingestion_jobs/{jobId} {
+      allow read, write, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
   }
 }

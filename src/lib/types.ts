@@ -68,3 +68,33 @@ export type BusinessClaim = {
   status: 'pending' | 'approved' | 'rejected';
   createdAt: Timestamp;
 };
+
+export type IngestionSource = {
+  id: string;
+  name: string;
+  type: 'api_url' | 'file_upload';
+  source_details: {
+    url?: string;
+  };
+  frequency: 'manual' | 'daily' | 'weekly';
+  status: 'active' | 'inactive';
+  last_run_at?: Timestamp;
+  created_at: Timestamp;
+  created_by: string;
+};
+
+export type IngestionJob = {
+  id: string;
+  source_id: string;
+  source_name: string;
+  triggered_at: Timestamp;
+  triggered_by: 'manual' | 'scheduled';
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  ended_at?: Timestamp;
+  summary?: {
+    records_processed: number;
+    records_added: number;
+    records_updated: number;
+    errors: number;
+  };
+};
