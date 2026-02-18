@@ -1,56 +1,12 @@
 rules_version = '2';
+
+// WARNING: These rules are completely open and are for prototyping purposes only.
+// They allow anyone to read, write, and delete any data in your database.
+// Before deploying to production, you MUST replace these with secure rules.
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Businesses are public read, but write is restricted
-    match /businesses/{businessId} {
-      allow read: if true;
-      // Allow public write for prototype seeding. TODO: Restrict this in production.
-      allow write: if true;
-    }
-    
-    // Categories and Tags are public read, admin write
-    match /categories/{categoryId} {
-      allow read: if true;
-      // Allow public write for prototype seeding. TODO: Restrict this in production.
-      allow write: if true;
-    }
-
-    match /tags/{tagId} {
-      allow read: if true;
-      // Allow public write for prototype seeding. TODO: Restrict this in production.
-      allow write: if true;
-    }
-    
-    // User profile is readable by anyone, but only writable by the user themselves or an admin.
-    match /users/{userId} {
-      allow get: if true;
-      allow create, update: if isOwner(userId);
-      allow delete: if isAdmin();
-      
-      // User lists are only accessible by the owner.
-      match /lists/{listId} {
-        allow read, write: if isOwner(userId);
-      }
-    }
-
-    // Claims can be created by any signed-in user, but only read/updated by admins.
-    match /claims/{claimId} {
-      allow create: if isSignedIn();
-      allow read, update, delete: if isAdmin();
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
