@@ -17,7 +17,7 @@ import {
 // --- Input Schema ---
 
 const IngestFromSourceInputSchema = z.object({
-  sourceUrl: z.string().url().describe('The URL of the data source to ingest from.'),
+  sourceUrl: z.string().describe('The URL of the data source to ingest from.'),
 });
 export type IngestFromSourceInput = z.infer<typeof IngestFromSourceInputSchema>;
 

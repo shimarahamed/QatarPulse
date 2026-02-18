@@ -38,7 +38,7 @@ import { useEffect } from 'react';
 const formSchema = z.object({
   name: z.string().min(3, 'Source name must be at least 3 characters.'),
   type: z.enum(['api_url', 'file_upload']),
-  url: z.string().url('Please enter a valid URL.').optional().or(z.literal('')),
+  url: z.string().optional().or(z.literal('')),
   frequency: z.enum(['manual', 'daily', 'weekly']),
 });
 
