@@ -69,7 +69,6 @@ export function UserAuthForm({
     const userDoc = await getDoc(userRef);
     const isNewUser = !userDoc.exists();
 
-    let userRole = 'user';
     const userData: any = {
       email: user.email,
       displayName: user.displayName,
@@ -77,17 +76,7 @@ export function UserAuthForm({
     };
 
     if (isNewUser) {
-      const usersCollection = collection(firestore, 'users');
-      const adminQuery = query(
-        usersCollection,
-        where('role', '==', 'admin'),
-        limit(1)
-      );
-      const adminSnapshot = await getDocs(adminQuery);
-      if (adminSnapshot.empty) {
-        userRole = 'admin';
-      }
-      userData.role = userRole;
+      userData.role = 'user'; // All new users are standard users
       userData.createdAt = serverTimestamp();
     }
 
@@ -98,10 +87,7 @@ export function UserAuthForm({
     if (isNewUser) {
       toast({
         title: 'Account Created',
-        description:
-          userRole === 'admin'
-            ? "You're the first user, so you have been made an admin!"
-            : 'Welcome! You can now access all features.',
+        description: 'Welcome! You can now access all features.',
       });
     } else {
       toast({
