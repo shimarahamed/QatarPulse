@@ -2,6 +2,7 @@ import {
   Firestore,
   addDoc,
   collection,
+  doc,
   writeBatch,
 } from 'firebase/firestore';
 import type { Category, Tag, Business } from './types';
@@ -351,7 +352,7 @@ export async function seedDatabase(db: Firestore) {
     const businessCol = collection(db, 'businesses');
     const batch = writeBatch(db);
     businessesToSeed.forEach((business) => {
-      const docRef = collection(db, 'businesses').doc();
+      const docRef = doc(businessCol);
       batch.set(docRef, business);
     });
     await batch.commit();
