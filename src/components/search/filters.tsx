@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -15,36 +17,121 @@ import { Filter } from 'lucide-react';
 
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import type { Category } from '@/lib/types';
+import type { Category, Tag } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function FiltersContent() {
   const firestore = useFirestore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Component State for filters
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(searchParams.getAll('category') || []);
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>(searchParams.getAll('price') || []);
+  const [minRating, setMinRating] = useState<number>(Number(searchParams.get('rating')) || 0);
+  const [openNow, setOpenNow] = useState<boolean>(searchParams.get('openNow') === 'true');
+  const [verified, setVerified] = useState<boolean>(searchParams.get('verified') === 'true');
+  const [selectedTags, setSelectedTags] = useState<string[]>(searchParams.getAll('tag') || []);
+
   const categoriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
   }, [firestore]);
+  const { data: categories, isLoading: isLoadingCategories } = useCollection<Category>(categoriesQuery);
 
-  const { data: categories, isLoading } = useCollection<Category>(categoriesQuery);
+  const tagsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'tags');
+  }, [firestore]);
+  const { data: tags, isLoading: isLoadingTags } = useCollection<Tag>(tagsQuery);
+  
+  // Handlers to update state
+  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+    setSelectedCategories(prev => checked ? [...prev, categoryId] : prev.filter(id => id !== categoryId));
+  };
+
+  const handlePriceChange = (price: string, checked: boolean) => {
+    setSelectedPriceRanges(prev => checked ? [...prev, price] : prev.filter(p => p !== price));
+  };
+  
+  const handleTagChange = (tagId: string, checked: boolean) => {
+    setSelectedTags(prev => checked ? [...prev, tagId] : prev.filter(id => id !== tagId));
+  };
+
+  const handleApplyFilters = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('category');
+    selectedCategories.forEach(cat => params.append('category', cat));
+    
+    params.delete('price');
+    selectedPriceRanges.forEach(price => params.append('price', price));
+    
+    params.delete('tag');
+    selectedTags.forEach(tag => params.append('tag', tag));
+
+    if (minRating > 0) {
+      params.set('rating', String(minRating));
+    } else {
+      params.delete('rating');
+    }
+
+    if (openNow) {
+      params.set('openNow', 'true');
+    } else {
+      params.delete('openNow');
+    }
+    
+    if (verified) {
+      params.set('verified', 'true');
+    } else {
+      params.delete('verified');
+    }
+
+    // Keep existing query `q` if it exists
+    const q = searchParams.get('q');
+    if (q) {
+        params.set('q', q);
+    }
+    
+    // Reset page to 1 when filters change
+    params.set('page', '1');
+
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const handleClearFilters = () => {
+    const params = new URLSearchParams();
+    const q = searchParams.get('q');
+    if (q) {
+        params.set('q', q);
+    }
+    router.push(`/search?${params.toString()}`);
+  }
+
+  const isLoading = isLoadingCategories || isLoadingTags;
 
   return (
     <div className="flex flex-col gap-6">
-      <Accordion type="multiple" defaultValue={['category', 'price', 'rating']} className="w-full">
+      <Accordion type="multiple" defaultValue={['category', 'price', 'rating', 'other']} className="w-full">
         <AccordionItem value="category">
           <AccordionTrigger className="font-headline text-base">
             Category
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3">
-              {isLoading && Array.from({length: 5}).map((_, i) => (
+              {isLoadingCategories && Array.from({length: 5}).map((_, i) => (
                 <div key={i} className="flex items-center space-x-2">
                     <Skeleton className="h-4 w-4" />
                     <Skeleton className="h-4 w-24" />
                 </div>
               ))}
-              {categories?.slice(0, 8).map((category) => (
+              {categories?.map((category) => (
                 <div key={category.id} className="flex items-center space-x-2">
-                  <Checkbox id={`cat-${category.id}`} />
+                  <Checkbox 
+                    id={`cat-${category.id}`} 
+                    checked={selectedCategories.includes(category.id)}
+                    onCheckedChange={(checked) => handleCategoryChange(category.id, !!checked)}
+                  />
                   <Label
                     htmlFor={`cat-${category.id}`}
                     className="font-normal text-sm"
@@ -53,9 +140,6 @@ function FiltersContent() {
                   </Label>
                 </div>
               ))}
-              {(categories?.length || 0) > 8 && <Button variant="link" className="p-0 h-auto">
-                Show all
-              </Button>}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -67,7 +151,11 @@ function FiltersContent() {
             <div className="space-y-3">
               {['$', '$$', '$$$', '$$$$'].map((price) => (
                 <div key={price} className="flex items-center space-x-2">
-                  <Checkbox id={`price-${price}`} />
+                  <Checkbox 
+                    id={`price-${price}`}
+                    checked={selectedPriceRanges.includes(price)}
+                    onCheckedChange={(checked) => handlePriceChange(price, !!checked)}
+                  />
                   <Label
                     htmlFor={`price-${price}`}
                     className="font-normal text-sm"
@@ -85,9 +173,9 @@ function FiltersContent() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="p-1">
-              <Slider defaultValue={[4]} max={5} step={0.5} />
+              <Slider value={[minRating]} onValueChange={(value) => setMinRating(value[0])} max={5} step={0.5} />
               <p className="text-sm text-muted-foreground mt-2">
-                4.0 and up
+                {minRating.toFixed(1)} and up
               </p>
             </div>
           </AccordionContent>
@@ -99,30 +187,47 @@ function FiltersContent() {
           <AccordionContent>
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <Checkbox id="open-now" />
+                <Checkbox id="open-now" checked={openNow} onCheckedChange={(checked) => setOpenNow(!!checked)} />
                 <Label htmlFor="open-now" className="font-normal text-sm">
                   Open Now
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox id="verified" />
+                <Checkbox id="verified" checked={verified} onCheckedChange={(checked) => setVerified(!!checked)} />
                 <Label htmlFor="verified" className="font-normal text-sm">
                   Verified
                 </Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="delivery" />
-                <Label htmlFor="delivery" className="font-normal text-sm">
-                  Delivery
-                </Label>
+              <div className="pt-2">
+                <p className="font-medium text-sm mb-2">Tags</p>
+                <div className="space-y-3">
+                   {isLoadingTags && Array.from({length: 3}).map((_, i) => (
+                    <div key={i} className="flex items-center space-x-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-20" />
+                    </div>
+                  ))}
+                  {tags?.map(tag => (
+                     <div key={tag.id} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`tag-${tag.id}`}
+                        checked={selectedTags.includes(tag.id)}
+                        onCheckedChange={(checked) => handleTagChange(tag.id, !!checked)}
+                      />
+                      <Label htmlFor={`tag-${tag.id}`} className="font-normal text-sm">
+                        {tag.name_en}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
       <div className="flex flex-col gap-2">
-        <Button>Apply Filters</Button>
-        <Button variant="ghost">Clear All</Button>
+        <Button onClick={handleApplyFilters}>Apply Filters</Button>
+        <Button onClick={handleClearFilters} variant="ghost">Clear All</Button>
       </div>
     </div>
   );
