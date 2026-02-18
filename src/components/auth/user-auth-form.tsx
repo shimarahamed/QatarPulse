@@ -21,7 +21,16 @@ import {
   UserCredential,
 } from 'firebase/auth';
 import { useFirebase, setDocumentNonBlocking } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  serverTimestamp,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+  getDoc,
+} from 'firebase/firestore';
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
   isSignUp?: boolean;
@@ -50,32 +59,56 @@ export function UserAuthForm({
   const [isGoogleLoading, setIsGoogleLoading] = React.useState<boolean>(false);
   const { auth, firestore } = useFirebase();
 
-  const handleAuthSuccess = (userCredential: UserCredential) => {
+  const handleAuthSuccess = async (userCredential: UserCredential) => {
     const user = userCredential.user;
-    if (user && firestore) {
-      const userRef = doc(firestore, 'users', user.uid);
-      // This will create the user profile if it's their first time,
-      // or update their details if they already exist.
-      // It handles both new sign-ups and first-time Google logins.
-      setDocumentNonBlocking(
-        userRef,
-        {
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-          role: 'user',
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+    if (!user || !firestore) {
+      return;
     }
-    toast({
-      title: isSignUp ? 'Account created' : 'Signed in',
-      description: isSignUp
-        ? 'Welcome! You can now access all features.'
-        : 'Welcome back!',
-    });
-    // Redirect or update UI
+
+    const userRef = doc(firestore, 'users', user.uid);
+    const userDoc = await getDoc(userRef);
+    const isNewUser = !userDoc.exists();
+
+    let userRole = 'user';
+    const userData: any = {
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    };
+
+    if (isNewUser) {
+      const usersCollection = collection(firestore, 'users');
+      const adminQuery = query(
+        usersCollection,
+        where('role', '==', 'admin'),
+        limit(1)
+      );
+      const adminSnapshot = await getDocs(adminQuery);
+      if (adminSnapshot.empty) {
+        userRole = 'admin';
+      }
+      userData.role = userRole;
+      userData.createdAt = serverTimestamp();
+    }
+
+    // Always merge, so subsequent Google logins update photoURL etc.
+    setDocumentNonBlocking(userRef, userData, { merge: true });
+
+    // Toast logic
+    if (isNewUser) {
+      toast({
+        title: 'Account Created',
+        description:
+          userRole === 'admin'
+            ? "You're the first user, so you have been made an admin!"
+            : 'Welcome! You can now access all features.',
+      });
+    } else {
+      toast({
+        title: 'Signed In',
+        description: 'Welcome back!',
+      });
+    }
   };
 
   const handleAuthError = (error: any) => {
@@ -103,7 +136,7 @@ export function UserAuthForm({
           data.password
         );
       }
-      handleAuthSuccess(userCredential);
+      await handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
     } finally {
@@ -116,7 +149,7 @@ export function UserAuthForm({
     const provider = new GoogleAuthProvider();
     try {
       const userCredential = await signInWithPopup(auth, provider);
-      handleAuthSuccess(userCredential);
+      await handleAuthSuccess(userCredential);
     } catch (error) {
       handleAuthError(error);
     } finally {
