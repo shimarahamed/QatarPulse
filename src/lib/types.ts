@@ -97,4 +97,5 @@ export type IngestionJob = {
     records_updated: number;
     errors: number;
   };
+  error?: string;
 };

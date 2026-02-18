@@ -136,7 +136,8 @@
             "records_updated": { "type": "number" },
             "errors": { "type": "number" }
           }
-        }
+        },
+        "error": { "type": "string", "description": "The error message if the job failed." }
       },
       "required": ["source_id", "source_name", "triggered_at", "triggered_by", "status"]
     }

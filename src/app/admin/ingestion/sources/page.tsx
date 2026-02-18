@@ -129,17 +129,19 @@ export default function IngestionSourcesPage() {
       router.push('/admin/ingestion/jobs');
 
     } catch (e: any) {
+       const errorMessage = e.message || 'An unexpected error occurred.';
       toast({
         variant: 'destructive',
         title: 'Job Failed',
-        description: e.message || 'An unexpected error occurred.',
+        description: errorMessage,
       });
-      // If job was created, update its status to failed
+      // If job was created, update its status to failed and log the error
       if (jobId) {
         const jobDocRef = doc(firestore, 'ingestion_jobs', jobId);
         await updateDoc(jobDocRef, {
           status: 'failed',
           ended_at: serverTimestamp(),
+          error: errorMessage,
           summary: { errors: 1, records_processed: 0, records_added: 0 }
         }).catch(console.error); // Best effort to mark as failed
       }
