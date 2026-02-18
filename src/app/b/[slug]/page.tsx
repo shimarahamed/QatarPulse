@@ -1,6 +1,6 @@
 'use client';
 
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import {
@@ -58,11 +58,8 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-export default function BusinessProfilePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default function BusinessProfilePage() {
+  const params = useParams<{ slug: string }>();
   const [business, setBusiness] = useState<WithId<Business> | null>(null);
   const [category, setCategory] = useState<WithId<Category> | null>(null);
   const [tags, setTags] = useState<WithId<Tag>[]>([]);
@@ -74,7 +71,7 @@ export default function BusinessProfilePage({
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !params.slug) return;
 
     setIsLoading(true);
 
