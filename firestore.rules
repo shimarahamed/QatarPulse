@@ -6,10 +6,9 @@ service cloud.firestore {
     // Public content can be read by anyone.
     match /businesses/{businessId} {
       allow read: if true;
-      // Only the business owner can update their listing.
-      allow update: if request.auth.uid == resource.data.ownerId;
-      // Logged-in users can create. Admin can delete.
-      allow create: if request.auth != null;
+      // Admins can create. Business owners or admins can update. Admins can delete.
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update: if request.auth.uid == resource.data.ownerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     match /categories/{categoryId} {
@@ -25,9 +24,10 @@ service cloud.firestore {
 
     // User-specific data
     match /users/{userId} {
-      // Users can read/write their own profile. Admins can read any profile.
-      allow read, write: if request.auth.uid == userId;
-      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Anyone can read user profiles to see display names, etc.
+      allow read: if true;
+      // Users can write their own profile.
+      allow write: if request.auth.uid == userId;
     }
 
     match /users/{userId}/lists/{listId} {

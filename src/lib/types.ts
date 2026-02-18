@@ -42,6 +42,8 @@ export type Business = {
   logo_id: string;
   image_ids: string[];
   ownerId?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 };
 
 export type UserProfile = {
