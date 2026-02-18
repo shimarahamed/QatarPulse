@@ -7,12 +7,13 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Heart, Settings, Briefcase } from 'lucide-react';
+import { User, Heart, Settings, Briefcase, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const accountNavItems = [
   { href: '/account', label: 'Profile', icon: User },
   { href: '/account/my-businesses', label: 'My Businesses', icon: Briefcase },
+  { href: '/account/claims', label: 'My Claims', icon: ClipboardList },
   { href: '/account/favorites', label: 'Favorites', icon: Heart },
   { href: '/account/settings', label: 'Settings', icon: Settings },
 ];
