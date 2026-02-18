@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
@@ -17,12 +18,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
-import { collection, orderBy, query } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, WithId, addDocumentNonBlocking } from '@/firebase';
+import { collection, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import type { IngestionSource } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, MoreHorizontal, Play, Trash2, Pencil } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Play, Trash2, Pencil, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { AddSourceDialog } from '@/components/admin/ingestion/add-source-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const StatusBadge = ({ status }: { status: IngestionSource['status'] }) => {
   return status === 'active' ? (
@@ -42,7 +44,10 @@ const StatusBadge = ({ status }: { status: IngestionSource['status'] }) => {
 
 export default function IngestionSourcesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [runningSourceId, setRunningSourceId] = useState<string | null>(null);
   const firestore = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const sourcesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -50,6 +55,38 @@ export default function IngestionSourcesPage() {
   }, [firestore]);
 
   const { data: sources, isLoading } = useCollection<IngestionSource>(sourcesQuery);
+  
+  const handleRunNow = async (source: WithId<IngestionSource>) => {
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+      return;
+    }
+    setRunningSourceId(source.id);
+    try {
+      const jobsCollection = collection(firestore, 'ingestion_jobs');
+      await addDocumentNonBlocking(jobsCollection, {
+        source_id: source.id,
+        source_name: source.name,
+        triggered_at: serverTimestamp(),
+        triggered_by: 'manual',
+        status: 'pending',
+      });
+      toast({
+        title: 'Job Started',
+        description: `Ingestion for "${source.name}" has been queued.`,
+      });
+      router.push('/admin/ingestion/jobs');
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to start job',
+        description: e.message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setRunningSourceId(null);
+    }
+  };
+
 
   return (
     <>
@@ -122,14 +159,18 @@ export default function IngestionSourcesPage() {
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <Button aria-haspopup="true" size="icon" variant="ghost" disabled={!!runningSourceId}>
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Toggle menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Play className="mr-2 h-4 w-4" />
+                        <DropdownMenuItem onClick={() => handleRunNow(source)} disabled={runningSourceId === source.id}>
+                          {runningSourceId === source.id ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Play className="mr-2 h-4 w-4" />
+                          )}
                           Run Now
                         </DropdownMenuItem>
                         <DropdownMenuItem>
