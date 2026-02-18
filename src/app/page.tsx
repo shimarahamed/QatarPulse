@@ -8,7 +8,7 @@ import {
   Card,
   CardContent,
 } from '@/components/ui/card';
-import { ArrowRight, Building2, Search, UtensilsCrossed } from 'lucide-react';
+import { ArrowRight, Building2, Search, UtensilsCrossed, Edit, BarChart } from 'lucide-react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
 import { useCollection, useMemoFirebase } from '@/firebase';
@@ -174,6 +174,53 @@ export default function Home() {
                       </p>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container px-4 md:px-6">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+             <div className="flex justify-center md:order-last">
+              <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                <Card>
+                  <CardContent className="p-6">
+                      <h3 className="text-lg font-headline flex items-center gap-2 mb-2">
+                        <Edit className="h-6 w-6 text-accent" />
+                        Update Info
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Keep your profile, hours, and services current.
+                      </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                      <h3 className="text-lg font-headline flex items-center gap-2 mb-2">
+                        <BarChart className="h-6 w-6 text-accent" />
+                        View Insights
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        See how many customers are viewing your page.
+                      </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Badge variant="outline">Manage Your Page</Badge>
+              <h2 className="font-headline text-3xl md:text-4xl font-bold">
+                Already Claimed Your Business?
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                Log in to your dashboard to update your profile, respond to reviews, and see how customers are engaging with your page.
+              </p>
+              <div className="flex gap-4">
+                <Button asChild>
+                  <Link href="/account/my-businesses">Go to My Dashboard</Link>
+                </Button>
               </div>
             </div>
           </div>
