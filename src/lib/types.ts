@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import type { Timestamp } from 'firebase/firestore';
 
 export type Category = {
   id: string;
@@ -41,4 +42,25 @@ export type Business = {
   logo_id: string;
   image_ids: string[];
   ownerId?: string;
+};
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  role: 'user' | 'admin';
+  createdAt: Timestamp;
+};
+
+export type BusinessClaim = {
+  id: string;
+  businessId: string;
+  businessName: string;
+  claimerName: string;
+  claimerEmail: string;
+  claimerPhone: string;
+  claimerId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Timestamp;
 };
