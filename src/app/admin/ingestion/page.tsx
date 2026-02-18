@@ -28,8 +28,8 @@ import {
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, Save } from 'lucide-react';
-import { useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { Loader2, Sparkles, Send } from 'lucide-react';
+import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
@@ -44,6 +44,7 @@ export default function IngestionPage() {
   const [normalizedData, setNormalizedData] =
     useState<NormalizeIngestedBusinessDataOutput | null>(null);
   const { toast } = useToast();
+  const { user } = useUser();
   const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,23 +81,27 @@ export default function IngestionPage() {
   }
 
   const handleSave = async () => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Required", description: "You must be logged in to submit a business."});
+        return;
+    }
     if (!normalizedData || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No data to save or database not available.'});
         return;
     }
     setIsSaving(true);
     try {
-        const businessesCol = collection(firestore, 'businesses');
+        const pendingCol = collection(firestore, 'pending_businesses');
         const dataToSave = {
             ...normalizedData,
-            slug: normalizedData.name_en?.toLowerCase().replace(/\s+/g, '-') || `business-${Date.now()}`,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
+            submittedBy: user.uid,
+            submittedAt: serverTimestamp(),
+            status: 'pending',
         }
-        await addDocumentNonBlocking(businessesCol, dataToSave);
+        await addDocumentNonBlocking(pendingCol, dataToSave);
         toast({
-            title: 'Business Saved',
-            description: `${normalizedData.name_en} has been added to the database.`,
+            title: 'Business Submitted for Review',
+            description: `${normalizedData.name_en} has been added to the moderation queue.`,
         });
         setNormalizedData(null);
         form.reset();
@@ -104,7 +109,7 @@ export default function IngestionPage() {
          toast({
             variant: "destructive",
             title: "Uh oh! Something went wrong.",
-            description: e.message || "Could not save business.",
+            description: e.message || "Could not submit business for review.",
         });
     } finally {
         setIsSaving(false);
@@ -164,7 +169,7 @@ export default function IngestionPage() {
           <CardHeader>
             <CardTitle>Normalized Output</CardTitle>
             <CardDescription>
-              Review the structured data below. You can save it to the database.
+              Review the structured data below. You can submit it for approval.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -174,8 +179,8 @@ export default function IngestionPage() {
           </CardContent>
           <CardFooter>
             <Button onClick={handleSave} disabled={isSaving || isNormalizing}>
-              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-               Save Business
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+               Submit for Review
             </Button>
           </CardFooter>
         </Card>
