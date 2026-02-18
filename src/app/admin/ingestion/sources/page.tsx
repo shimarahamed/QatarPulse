@@ -18,8 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCollection, useFirestore, useMemoFirebase, WithId, addDocumentNonBlocking } from '@/firebase';
-import { collection, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
+import { collection, orderBy, query, serverTimestamp, addDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import type { IngestionSource } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { AddSourceDialog } from '@/components/admin/ingestion/add-source-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { ingestFromSource } from '@/ai/flows/ingest-from-source';
 
 const StatusBadge = ({ status }: { status: IngestionSource['status'] }) => {
   return status === 'active' ? (
@@ -62,26 +63,86 @@ export default function IngestionSourcesPage() {
       return;
     }
     setRunningSourceId(source.id);
+    let jobId: string | null = null;
+    
     try {
+      // 1. Create the job document
       const jobsCollection = collection(firestore, 'ingestion_jobs');
-      await addDocumentNonBlocking(jobsCollection, {
+      const jobDocRef = await addDoc(jobsCollection, {
         source_id: source.id,
         source_name: source.name,
         triggered_at: serverTimestamp(),
         triggered_by: 'manual',
         status: 'pending',
       });
-      toast({
-        title: 'Job Started',
-        description: `Ingestion for "${source.name}" has been queued.`,
+      jobId = jobDocRef.id;
+
+      // 2. Update status to running
+      await updateDoc(jobDocRef, { status: 'running' });
+
+      // 3. Call the AI flow to fetch and normalize
+      const normalizedData = await ingestFromSource({ sourceUrl: source.source_details.url! });
+
+      if (!normalizedData || normalizedData.length === 0) {
+        throw new Error("No data returned from the ingestion source.");
+      }
+
+      // 4. Save results to pending_businesses
+      const batch = writeBatch(firestore);
+      const pendingCol = collection(firestore, 'pending_businesses');
+      let addedCount = 0;
+      normalizedData.forEach(businessData => {
+        if (businessData.name_en) { // Basic validation
+             const newPendingRef = doc(pendingCol);
+             batch.set(newPendingRef, {
+                ...businessData,
+                submittedBy: 'ingestion-job:' + jobId,
+                submittedAt: serverTimestamp(),
+                status: 'pending',
+            });
+            addedCount++;
+        }
       });
+      await batch.commit();
+
+      // 5. Finalize job status
+      await updateDoc(jobDocRef, {
+        status: 'completed',
+        ended_at: serverTimestamp(),
+        summary: {
+          records_processed: normalizedData.length,
+          records_added: addedCount,
+          errors: normalizedData.length - addedCount,
+        }
+      });
+      
+      // 6. Update source last_run_at
+      await updateDoc(doc(firestore, 'ingestion_sources', source.id), {
+        last_run_at: serverTimestamp()
+      });
+
+      toast({
+        title: 'Job Completed',
+        description: `${source.name} finished. ${addedCount} records sent to moderation.`,
+      });
+      // Optionally redirect or refresh data
       router.push('/admin/ingestion/jobs');
+
     } catch (e: any) {
       toast({
         variant: 'destructive',
-        title: 'Failed to start job',
+        title: 'Job Failed',
         description: e.message || 'An unexpected error occurred.',
       });
+      // If job was created, update its status to failed
+      if (jobId) {
+        const jobDocRef = doc(firestore, 'ingestion_jobs', jobId);
+        await updateDoc(jobDocRef, {
+          status: 'failed',
+          ended_at: serverTimestamp(),
+          summary: { errors: 1, records_processed: 0, records_added: 0 }
+        }).catch(console.error); // Best effort to mark as failed
+      }
     } finally {
       setRunningSourceId(null);
     }
