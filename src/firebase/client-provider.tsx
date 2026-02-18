@@ -5,8 +5,8 @@ import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 import { seedDatabase } from '@/lib/seed';
 import { collection, query, limit, getDocs } from 'firebase/firestore';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from './errors';
+import { errorEmitter } from './error-emitter';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -26,17 +26,17 @@ export function FirebaseClientProvider({
       if (!firebaseServices.firestore) return;
 
       try {
-        const categoriesRef = collection(
+        const businessesRef = collection(
           firebaseServices.firestore,
-          'categories'
+          'businesses'
         );
         // A query to check if at least one document exists.
-        const q = query(categoriesRef, limit(1));
+        const q = query(businessesRef, limit(1));
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
           console.log(
-            'No categories found in Firestore. Seeding database with mock data...'
+            'No businesses found in Firestore. Seeding database with mock data...'
           );
           seedDatabase(firebaseServices.firestore)
             .then(() => {
@@ -49,16 +49,16 @@ export function FirebaseClientProvider({
       } catch (e: any) {
         if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
           console.error(
-            'Permission denied while checking for categories. Cannot seed database.'
+            'Permission denied while checking for businesses. Cannot seed database.'
           );
           const contextualError = new FirestorePermissionError({
             operation: 'list',
-            path: 'categories',
+            path: 'businesses',
           });
           errorEmitter.emit('permission-error', contextualError);
         } else {
           console.error(
-            'An error occurred while checking for categories:',
+            'An error occurred while checking for businesses:',
             e
           );
         }
