@@ -20,7 +20,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -29,6 +28,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, Send } from 'lucide-react';
+import { useFirestore, useUser, addDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   rawData: z.string().min(10, {
@@ -38,9 +39,12 @@ const formSchema = z.object({
 
 export default function SubmitBusinessPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [normalizedData, setNormalizedData] =
     useState<NormalizeIngestedBusinessDataOutput | null>(null);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,14 +79,45 @@ export default function SubmitBusinessPage() {
     }
   }
 
-  const handleSubmitForReview = () => {
-    // This is where you would save to a "pending" collection in Firestore for admin review
-    toast({
-      title: 'Submission Sent',
-      description: 'Thank you! Your business submission is now pending review from our team.',
-    });
-    setNormalizedData(null);
-    form.reset();
+  const handleSubmitForReview = async () => {
+     if (!user) {
+        toast({
+            variant: "destructive",
+            title: "Authentication Required",
+            description: "You must be logged in to submit a business."
+        });
+        return;
+    }
+    if (!normalizedData || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No data to submit or database not available.'});
+        return;
+    }
+    setIsSubmitting(true);
+    try {
+        const pendingCol = collection(firestore, 'pending_businesses');
+        const dataToSave = {
+            ...normalizedData,
+            submittedBy: user.uid,
+            submittedAt: serverTimestamp(),
+            status: 'pending', // Initial status
+        }
+        await addDocumentNonBlocking(pendingCol, dataToSave);
+        toast({
+          title: 'Submission Sent',
+          description: 'Thank you! Your business submission is now pending review from our team.',
+        });
+        setNormalizedData(null);
+        form.reset();
+
+    } catch (e: any) {
+         toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: e.message || "Could not submit business for review.",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   return (
@@ -126,7 +161,7 @@ export default function SubmitBusinessPage() {
               />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading || isSubmitting}>
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -153,8 +188,9 @@ export default function SubmitBusinessPage() {
             </pre>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleSubmitForReview}>
-              <Send className="mr-2 h-4 w-4" /> Submit for Review
+            <Button onClick={handleSubmitForReview} disabled={isSubmitting || isLoading}>
+               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+               Submit for Review
             </Button>
           </CardFooter>
         </Card>

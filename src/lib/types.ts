@@ -44,6 +44,8 @@ export type Business = {
   ownerId?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+  submittedBy?: string;
+  submittedAt?: Timestamp;
 };
 
 export type UserProfile = {

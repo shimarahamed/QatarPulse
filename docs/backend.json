@@ -28,7 +28,9 @@
         "image_ids": { "type": "array", "items": { "type": "string" } },
         "ownerId": { "type": "string", "description": "Reference to the UserProfile ID of the business owner." },
         "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "submittedBy": { "type": "string", "description": "ID of the user who submitted the business." },
+        "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp of when the business was submitted." }
       },
       "required": ["name_en", "category_id", "status", "createdAt", "updatedAt"]
     },
@@ -108,6 +110,10 @@
     "/businesses/{businessId}": {
         "schema": { "$ref": "#/entities/Business" },
         "description": "Main collection for business listings."
+    },
+    "/pending_businesses/{pendingBusinessId}": {
+        "schema": { "$ref": "#/entities/Business" },
+        "description": "Businesses submitted by users pending for admin approval."
     },
     "/categories/{categoryId}": {
         "schema": { "$ref": "#/entities/Category" },

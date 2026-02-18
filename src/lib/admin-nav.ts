@@ -1,12 +1,13 @@
 import {
     LayoutDashboard,
     Building2,
-    ListTodo,
+    FilePlus2,
     ShieldCheck,
     AlertTriangle,
     Users,
     Settings,
     DownloadCloud,
+    ListTodo,
   } from 'lucide-react';
   
   export const adminNavItems = [
@@ -22,6 +23,7 @@ import {
       ],
     },
     { href: '/admin/moderation', label: 'Moderation', icon: ListTodo },
+    { href: '/admin/submissions', label: 'Submissions', icon: FilePlus2 },
     { href: '/admin/claims', label: 'Claims', icon: ShieldCheck },
     { href: '/admin/reports', label: 'Reports', icon: AlertTriangle },
     { href: '/admin/users', label: 'Users', icon: Users },
