@@ -23,6 +23,12 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+  } from '@/components/ui/accordion';
 
 
 const JobStatusBadge = ({ status }: { status: IngestionJob['status'] }) => {
@@ -175,14 +181,23 @@ function JobDetailsPage() {
                            <Skeleton className="h-8 w-full" />
                         </div>
                     ) : pendingBusinesses && pendingBusinesses.length > 0 ? (
-                        <div className="divide-y border rounded-md">
+                        <Accordion type="single" collapsible className="w-full space-y-1">
                             {pendingBusinesses.map(biz => (
-                                <div key={biz.id} className="p-3">
-                                    <p className="font-medium">{biz.name_en || 'Unnamed Business'}</p>
-                                    <p className="text-sm text-muted-foreground">{biz.address_en || 'No address'}</p>
-                                </div>
+                                <AccordionItem value={biz.id} key={biz.id} className="border rounded-md px-4">
+                                    <AccordionTrigger>
+                                        <div className="flex flex-col text-left">
+                                            <p className="font-medium">{biz.name_en || 'Unnamed Business'}</p>
+                                            <p className="text-sm text-muted-foreground">{biz.address_en || 'No address'}</p>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <pre className="p-4 bg-muted rounded-md text-sm text-foreground overflow-x-auto whitespace-pre-wrap">
+                                            {JSON.stringify(biz, null, 2)}
+                                        </pre>
+                                    </AccordionContent>
+                                </AccordionItem>
                             ))}
-                        </div>
+                        </Accordion>
                     ) : (
                         <p className="text-sm text-muted-foreground text-center py-8">No businesses were added by this job.</p>
                     )}
