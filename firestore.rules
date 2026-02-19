@@ -3,6 +3,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // This rule allows admins to perform collection group queries on 'reviews' for moderation purposes.
+    // It grants read access to the entire 'reviews' collection group for any user with the admin role.
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // Public content can be read by anyone.
     match /businesses/{businessId} {
       allow read: if true;
@@ -13,8 +19,9 @@ service cloud.firestore {
 
       // Reviews subcollection rules
       match /reviews/{reviewId} {
-        // Public can read approved reviews. Author, admin, and business owner can read all statuses.
-        allow read: if resource.data.status == 'approved' || (request.auth != null && (request.auth.uid == resource.data.userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || (exists(/databases/$(database)/documents/businesses/$(businessId)) && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid)));
+        // This rule handles non-admin reads for specific reviews.
+        // Public can read approved reviews. Authors and business owners can read reviews related to them regardless of status.
+        allow read: if resource.data.status == 'approved' || (request.auth != null && (request.auth.uid == resource.data.userId || (exists(/databases/$(database)/documents/businesses/$(businessId)) && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid)));
 
         // Logged-in users can create their own review (as pending).
         allow create: if request.auth != null && request.auth.uid == reviewId && request.resource.data.status == 'pending' && request.resource.data.userId == request.auth.uid;
