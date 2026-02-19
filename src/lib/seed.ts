@@ -4,8 +4,9 @@ import {
   collection,
   doc,
   writeBatch,
+  serverTimestamp,
 } from 'firebase/firestore';
-import type { Category, Tag, Business } from './types';
+import type { Category, Tag, Business, IngestionSource } from './types';
 
 // Omit 'id' as Firestore will generate it.
 const SEED_CATEGORIES: Omit<Category, 'id'>[] = [
@@ -72,6 +73,57 @@ const SEED_TAGS: Omit<Tag, 'id'>[] = [
   { name_en: '24/7', name_ar: 'خدمة 24/7' },
   { name_en: 'Outdoor Seating', name_ar: 'جلسات خارجية' },
   { name_en: 'Reservations', name_ar: 'حجوزات' },
+];
+
+const SEED_INGESTION_SOURCES: Omit<
+  IngestionSource,
+  'id' | 'created_at' | 'created_by'
+>[] = [
+  {
+    name: 'Restaurants in The Pearl',
+    type: 'api_url',
+    source_details: {
+      url: 'https://overpass-api.de/api/interpreter?data=[out:json];node(25.36,51.53,25.38,51.55)[amenity=restaurant];out;',
+    },
+    frequency: 'manual',
+    status: 'active',
+  },
+  {
+    name: 'Supermarkets in Al Rayyan',
+    type: 'api_url',
+    source_details: {
+      url: 'https://overpass-api.de/api/interpreter?data=[out:json];node(25.27,51.38,25.32,51.46)[shop=supermarket];out;',
+    },
+    frequency: 'manual',
+    status: 'active',
+  },
+  {
+    name: 'Pharmacies in Central Doha',
+    type: 'api_url',
+    source_details: {
+      url: 'https://overpass-api.de/api/interpreter?data=[out:json];node(25.26,51.48,25.30,51.54)[amenity=pharmacy];out;',
+    },
+    frequency: 'manual',
+    status: 'active',
+  },
+  {
+    name: 'Banks in West Bay',
+    type: 'api_url',
+    source_details: {
+      url: 'https://overpass-api.de/api/interpreter?data=[out:json];node(25.32,51.52,25.34,51.54)[amenity=bank];out;',
+    },
+    frequency: 'manual',
+    status: 'active',
+  },
+  {
+    name: 'Hotels in Doha',
+    type: 'api_url',
+    source_details: {
+      url: 'https://overpass-api.de/api/interpreter?data=[out:json];node(25.25,51.48,25.35,51.55)[tourism=hotel];out;',
+    },
+    frequency: 'manual',
+    status: 'active',
+  },
 ];
 
 function getSeedBusinesses(
@@ -333,6 +385,8 @@ function getSeedBusinesses(
 
 export async function seedDatabase(db: Firestore) {
   try {
+    const batch = writeBatch(db);
+
     // Seed Categories
     const categoryCol = collection(db, 'categories');
     const categoryPromises = SEED_CATEGORIES.map((cat) => addDoc(categoryCol, cat));
@@ -350,13 +404,23 @@ export async function seedDatabase(db: Firestore) {
 
     // Seed Businesses using a Write Batch for efficiency
     const businessCol = collection(db, 'businesses');
-    const batch = writeBatch(db);
     businessesToSeed.forEach((business) => {
       const docRef = doc(businessCol);
       batch.set(docRef, business);
     });
-    await batch.commit();
 
+    // Seed Ingestion Sources
+    const sourcesCol = collection(db, 'ingestion_sources');
+    SEED_INGESTION_SOURCES.forEach((source) => {
+      const docRef = doc(sourcesCol);
+      batch.set(docRef, {
+        ...source,
+        created_at: serverTimestamp(),
+        created_by: 'system-seed',
+      });
+    });
+
+    await batch.commit();
   } catch (error) {
     console.error('Error seeding database: ', error);
     // Optionally re-throw or handle the error as needed
