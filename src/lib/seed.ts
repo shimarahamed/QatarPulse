@@ -409,7 +409,17 @@ export async function seedDatabase(db: Firestore) {
       batch.set(docRef, business);
     });
 
-    // Seed Ingestion Sources
+    await batch.commit();
+  } catch (error) {
+    console.error('Error seeding database: ', error);
+    // Optionally re-throw or handle the error as needed
+    throw error;
+  }
+}
+
+export async function seedIngestionSources(db: Firestore) {
+  try {
+    const batch = writeBatch(db);
     const sourcesCol = collection(db, 'ingestion_sources');
     SEED_INGESTION_SOURCES.forEach((source) => {
       const docRef = doc(sourcesCol);
@@ -419,11 +429,10 @@ export async function seedDatabase(db: Firestore) {
         created_by: 'system-seed',
       });
     });
-
     await batch.commit();
+    console.log('Database seeding for ingestion sources complete.');
   } catch (error) {
-    console.error('Error seeding database: ', error);
-    // Optionally re-throw or handle the error as needed
+    console.error('Error seeding ingestion sources: ', error);
     throw error;
   }
 }
