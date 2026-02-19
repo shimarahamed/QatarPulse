@@ -99,3 +99,15 @@ export type IngestionJob = {
   };
   error?: string;
 };
+
+export type Review = {
+  id: string;
+  businessId: string;
+  userId: string;
+  userDisplayName: string;
+  userPhotoURL?: string;
+  rating: number;
+  text: string;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+};

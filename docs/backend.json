@@ -140,6 +140,23 @@
         "error": { "type": "string", "description": "The error message if the job failed." }
       },
       "required": ["source_id", "source_name", "triggered_at", "triggered_by", "status"]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "A user-submitted review and rating for a business.",
+      "properties": {
+        "businessId": { "type": "string", "description": "The ID of the business being reviewed." },
+        "userId": { "type": "string", "description": "The ID of the user who wrote the review." },
+        "userDisplayName": { "type": "string", "description": "The display name of the user at the time of review." },
+        "userPhotoURL": { "type": "string", "format": "uri", "description": "The photo URL of the user at the time of review." },
+        "rating": { "type": "number", "minimum": 1, "maximum": 5, "description": "A star rating from 1 to 5." },
+        "text": { "type": "string", "description": "The main content of the review." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["businessId", "userId", "rating", "text", "createdAt"]
     }
   },
   "auth": {
@@ -152,6 +169,10 @@
     "/businesses/{businessId}": {
         "schema": { "$ref": "#/entities/Business" },
         "description": "Main collection for business listings."
+    },
+    "/businesses/{businessId}/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Subcollection for user reviews of a business."
     },
     "/pending_businesses/{pendingBusinessId}": {
         "schema": { "$ref": "#/entities/Business" },

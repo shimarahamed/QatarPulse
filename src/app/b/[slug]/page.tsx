@@ -57,6 +57,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import ReviewsSection from '@/components/reviews/reviews-section';
 
 export default function BusinessProfilePage() {
   const params = useParams<{ slug: string }>();
@@ -213,7 +214,7 @@ export default function BusinessProfilePage() {
       <div className="bg-secondary">
         <div className="container mx-auto px-4 md:px-6 py-8">
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 space-y-8">
               <Card>
                 <Skeleton className="w-full aspect-[16/9] rounded-t-lg" />
                 <div className="p-6">
@@ -223,6 +224,7 @@ export default function BusinessProfilePage() {
                   <Skeleton className="h-24 w-full" />
                 </div>
               </Card>
+              <Skeleton className="h-96 w-full" />
             </div>
             <div className="space-y-6">
               <Card>
@@ -259,7 +261,7 @@ export default function BusinessProfilePage() {
     <div className="bg-secondary">
       <div className="container mx-auto px-4 md:px-6 py-8">
         <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 space-y-8">
             <Card>
               <CardContent className="p-0">
                 {galleryImages.length > 0 ? (
@@ -361,6 +363,8 @@ export default function BusinessProfilePage() {
                 </div>
               </div>
             </Card>
+            
+            <ReviewsSection businessId={business.id} />
           </div>
 
           <div className="space-y-6">

@@ -10,6 +10,19 @@ service cloud.firestore {
       allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow update: if request.auth.uid == resource.data.ownerId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       allow delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+
+      // Reviews subcollection rules
+      match /reviews/{reviewId} {
+        // Anyone can read reviews.
+        allow read: if true;
+
+        // Logged-in users can create/update their own review.
+        // We use reviewId == request.auth.uid to ensure a user can only write to their own review document.
+        allow write: if request.auth != null && request.auth.uid == reviewId;
+        
+        // Users can delete their own review. Admins can delete any review.
+        allow delete: if request.auth != null && (request.auth.uid == reviewId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      }
     }
     match /categories/{categoryId} {
       allow read: if true;
