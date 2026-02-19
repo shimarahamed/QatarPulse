@@ -96,7 +96,10 @@ const ingestFromSourceFlow = ai.defineFlow(
         if (error.name === 'AbortError') {
           throw new Error('The data source timed out after 30 seconds. The server may be busy. Please try again later.');
         }
-        // Re-throw the error to be caught by the client-side caller, which will log it in the job document.
+        if (error.message.includes('fetch failed')) {
+            throw new Error(`Network error: The server could not connect to the data source at ${input.sourceUrl}. This could be a firewall, DNS, or connectivity issue on the server.`);
+        }
+        // Re-throw other errors to be caught by the client-side caller.
         throw error;
     }
   }
