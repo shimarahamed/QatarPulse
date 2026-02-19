@@ -103,6 +103,7 @@ export type IngestionJob = {
 export type Review = {
   id: string;
   businessId: string;
+  businessName?: string;
   userId: string;
   userDisplayName: string;
   userPhotoURL?: string;
@@ -110,6 +111,7 @@ export type Review = {
   text: string;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
+  status: 'pending' | 'approved' | 'rejected';
   ownerResponse?: {
     text: string;
     respondedAt: Timestamp;

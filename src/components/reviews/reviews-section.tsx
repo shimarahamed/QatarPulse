@@ -13,8 +13,8 @@ import {
   setDocumentNonBlocking,
   WithId,
 } from '@/firebase';
-import { collection, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import type { Review } from '@/lib/types';
+import { collection, doc, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
+import type { Review, Business } from '@/lib/types';
 
 import {
   Card,
@@ -40,7 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
 interface ReviewsSectionProps {
-  businessId: string;
+  business: WithId<Business>;
 }
 
 const reviewSchema = z.object({
@@ -101,14 +101,15 @@ function ReviewCard({ review }: { review: WithId<Review> }) {
   );
 }
 
-export default function ReviewsSection({ businessId }: ReviewsSectionProps) {
+export default function ReviewsSection({ business }: ReviewsSectionProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const businessId = business.id;
 
   const reviewsQuery = useMemoFirebase(() => {
     if (!firestore || !businessId) return null;
-    return query(collection(firestore, `businesses/${businessId}/reviews`), orderBy('createdAt', 'desc'));
+    return query(collection(firestore, `businesses/${businessId}/reviews`), where('status', '==', 'approved'), orderBy('createdAt', 'desc'));
   }, [firestore, businessId]);
 
   const { data: reviews, isLoading } = useCollection<Review>(reviewsQuery);
@@ -135,6 +136,7 @@ export default function ReviewsSection({ businessId }: ReviewsSectionProps) {
     const reviewRef = doc(firestore, `businesses/${businessId}/reviews`, user.uid);
     const newReview = {
       businessId: businessId,
+      businessName: business.name_en,
       userId: user.uid,
       userDisplayName: user.displayName || 'Anonymous',
       userPhotoURL: user.photoURL || '',
@@ -142,13 +144,14 @@ export default function ReviewsSection({ businessId }: ReviewsSectionProps) {
       text: values.text,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      status: 'pending',
     };
 
     setDocumentNonBlocking(reviewRef, newReview, { merge: true });
 
     toast({
       title: 'Review Submitted!',
-      description: 'Thank you for your feedback.',
+      description: 'Thank you for your feedback. It will be visible after moderation.',
     });
     form.reset();
   };
@@ -213,7 +216,7 @@ export default function ReviewsSection({ businessId }: ReviewsSectionProps) {
         )}
         {user && hasUserReviewed && (
             <div className="text-sm text-center text-muted-foreground bg-secondary p-4 rounded-md">
-                You've already reviewed this business. You can edit your review from your account page.
+                Your review is pending approval. You can edit it from your account page later.
             </div>
         )}
         {!user && (

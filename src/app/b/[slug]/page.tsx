@@ -364,7 +364,7 @@ export default function BusinessProfilePage() {
               </div>
             </Card>
             
-            <ReviewsSection businessId={business.id} />
+            <ReviewsSection business={business} />
           </div>
 
           <div className="space-y-6">
