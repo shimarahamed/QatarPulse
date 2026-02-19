@@ -64,19 +64,27 @@ const ingestFromSourceFlow = ai.defineFlow(
       if (!data.elements || !Array.isArray(data.elements)) {
         throw new Error("Invalid data format from source. Expected 'elements' array.");
       }
+      
+      const normalizedResults: NormalizeIngestedBusinessDataOutput[] = [];
+      for (const element of data.elements) {
+        if (!element.tags) {
+            continue;
+        }
 
-      const normalizationPromises = data.elements.map((element: any) => {
-        // The normalize flow expects a string. We'll pass the 'tags' object, which contains the core business info.
-        if (!element.tags) return Promise.resolve(null);
-        
         const rawDataString = JSON.stringify(element.tags);
-        return normalizeIngestedBusinessData({ rawBusinessData: rawDataString, sourceId: 'overpass-api-ingestion' });
-      });
+        
+        try {
+            const normalized = await normalizeIngestedBusinessData({ rawBusinessData: rawDataString, sourceId: 'overpass-api-ingestion' });
+            if (normalized) {
+                normalizedResults.push(normalized);
+            }
+        } catch (e: any) {
+            // Log the error for the individual item but continue processing the rest
+            console.error(`Skipping an element due to normalization error: ${e.message}`);
+        }
+      }
+      return normalizedResults;
 
-      const normalizedResults = await Promise.all(normalizationPromises);
-
-      // Filter out any null results from elements that had no tags
-      return normalizedResults.filter((r): r is NormalizeIngestedBusinessDataOutput => r !== null);
     } catch (error: any) {
         console.error("Error in ingestFromSourceFlow: ", error);
         // Re-throw the error to be caught by the client-side caller
