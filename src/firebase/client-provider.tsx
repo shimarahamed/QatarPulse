@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode, useEffect } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { seedDatabase, seedIngestionSources } from '@/lib/seed';
+import { seedDatabase } from '@/lib/seed';
 import { collection, query, limit, getDocs } from 'firebase/firestore';
 import { FirestorePermissionError } from './errors';
 import { errorEmitter } from './error-emitter';
@@ -53,36 +53,6 @@ export function FirebaseClientProvider({
         } else {
           console.error(
             'An error occurred while checking for businesses:',
-            e
-          );
-        }
-      }
-
-      // 2. Seed ingestion sources if that collection is empty
-      try {
-        const sourcesRef = collection(
-          firebaseServices.firestore,
-          'ingestion_sources'
-        );
-        const q = query(sourcesRef, limit(1));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-          console.log('No ingestion sources found. Seeding sources...');
-          await seedIngestionSources(firebaseServices.firestore);
-        }
-      } catch (e: any) {
-        if (e.name === 'FirebaseError' && e.code === 'permission-denied') {
-          console.error(
-            'Permission denied while checking for ingestion sources. Cannot seed sources.'
-          );
-          const contextualError = new FirestorePermissionError({
-            operation: 'list',
-            path: 'ingestion_sources',
-          });
-          errorEmitter.emit('permission-error', contextualError);
-        } else {
-          console.error(
-            'An error occurred while checking for ingestion sources:',
             e
           );
         }
