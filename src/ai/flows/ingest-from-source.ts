@@ -54,8 +54,14 @@ const ingestFromSourceFlow = ai.defineFlow(
     outputSchema: IngestFromSourceOutputSchema,
   },
   async (input) => {
+    const controller = new AbortController();
+    // Set a 30-second timeout for the fetch request, as Overpass API can be slow.
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
-      const response = await fetch(input.sourceUrl);
+      const response = await fetch(input.sourceUrl, { signal: controller.signal });
+      clearTimeout(timeoutId); // Clear the timeout if the fetch completes in time
+
       if (!response.ok) {
         throw new Error(`Failed to fetch data from source: ${response.statusText}`);
       }
@@ -86,9 +92,12 @@ const ingestFromSourceFlow = ai.defineFlow(
       return normalizedResults;
 
     } catch (error: any) {
-        console.error("Error in ingestFromSourceFlow: ", error);
-        // Re-throw the error to be caught by the client-side caller
-        throw new Error(error.message || 'An unexpected error occurred during ingestion.');
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('The data source timed out after 30 seconds. The server may be busy. Please try again later.');
+        }
+        // Re-throw the error to be caught by the client-side caller, which will log it in the job document.
+        throw error;
     }
   }
 );
