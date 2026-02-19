@@ -14,13 +14,6 @@ import {
 } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { Business, Category, Tag } from '@/lib/types';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -121,66 +114,81 @@ export default function EditBusinessPage() {
 
   if (isLoading) {
     return (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-1/2" />
-                <Skeleton className="h-4 w-3/4" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-            </CardContent>
-        </Card>
+        <div className="space-y-6">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+        </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Edit Business</CardTitle>
-        <CardDescription>Update the details for {business?.name_en}.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid md:grid-cols-2 gap-8">
-                 <FormField
-                    control={form.control}
-                    name="name_en"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Business Name (English)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g. The Coffee House" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                 <FormField
-                    control={form.control}
-                    name="name_ar"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Business Name (Arabic)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g. بيت القهوة" {...field} dir="rtl"/>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-            </div>
-             <FormField
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid md:grid-cols-2 gap-8">
+              <FormField
                 control={form.control}
-                name="description_en"
+                name="name_en"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Description (English)</FormLabel>
+                    <FormLabel>Business Name (English)</FormLabel>
                     <FormControl>
-                        <Textarea placeholder="Describe your business..." {...field} />
+                        <Input placeholder="e.g. The Coffee House" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+              <FormField
+                control={form.control}
+                name="name_ar"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Business Name (Arabic)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g. بيت القهوة" {...field} dir="rtl"/>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+        </div>
+          <FormField
+            control={form.control}
+            name="description_en"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Description (English)</FormLabel>
+                <FormControl>
+                    <Textarea placeholder="Describe your business..." {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        <FormField
+            control={form.control}
+            name="description_ar"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Description (Arabic)</FormLabel>
+                <FormControl>
+                    <Textarea placeholder="صف عملك..." {...field} dir="rtl"/>
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        <div className="grid md:grid-cols-2 gap-8">
+            <FormField
+                control={form.control}
+                name="address_en"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Address (English)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g. 123 Main St, Doha" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -188,175 +196,146 @@ export default function EditBusinessPage() {
                 />
             <FormField
                 control={form.control}
-                name="description_ar"
+                name="address_ar"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Description (Arabic)</FormLabel>
+                    <FormLabel>Address (Arabic)</FormLabel>
                     <FormControl>
-                        <Textarea placeholder="صف عملك..." {...field} dir="rtl"/>
+                        <Input placeholder="e.g. ١٢٣ شارع الرئيسي، الدوحة" {...field} dir="rtl"/>
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
-            <div className="grid md:grid-cols-2 gap-8">
-                <FormField
-                    control={form.control}
-                    name="address_en"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Address (English)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g. 123 Main St, Doha" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="address_ar"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Address (Arabic)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g. ١٢٣ شارع الرئيسي، الدوحة" {...field} dir="rtl"/>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-            </div>
-             <div className="grid md:grid-cols-2 gap-8">
-                <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                            <Input placeholder="+974..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="website"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Website</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-            </div>
-             <div className="grid md:grid-cols-2 gap-8">
-                 <FormField
-                    control={form.control}
-                    name="category_id"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Category</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a category" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {categories?.map(cat => (
-                                    <SelectItem key={cat.id} value={cat.id}>{cat.name_en}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="price_range"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Price Range</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a price range" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="$">$</SelectItem>
-                                <SelectItem value="$$">$$</SelectItem>
-                                <SelectItem value="$$$">$$$</SelectItem>
-                                <SelectItem value="$$$$">$$$$</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-            </div>
-             <FormField
+        </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            <FormField
                 control={form.control}
-                name="tag_ids"
+                name="phone"
                 render={({ field }) => (
                     <FormItem>
-                        <div className="mb-4">
-                            <FormLabel className="text-base">Tags & Services</FormLabel>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {tags?.map((tag) => (
-                            <FormField
-                            key={tag.id}
-                            control={form.control}
-                            name="tag_ids"
-                            render={({ field }) => {
-                                return (
-                                <FormItem
-                                    key={tag.id}
-                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                    <FormControl>
-                                    <Checkbox
-                                        checked={field.value?.includes(tag.id)}
-                                        onCheckedChange={(checked) => {
-                                        return checked
-                                            ? field.onChange([...(field.value || []), tag.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                (value) => value !== tag.id
-                                                )
-                                            )
-                                        }}
-                                    />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">
-                                    {tag.name_en}
-                                    </FormLabel>
-                                </FormItem>
-                                )
-                            }}
-                            />
-                        ))}
-                        </div>
-                        <FormMessage />
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                        <Input placeholder="+974..." {...field} />
+                    </FormControl>
+                    <FormMessage />
                     </FormItem>
-                    )}
+                )}
                 />
-            
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                        <Input placeholder="https://..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+        </div>
+          <div className="grid md:grid-cols-2 gap-8">
+              <FormField
+                control={form.control}
+                name="category_id"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {categories?.map(cat => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name_en}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            <FormField
+                control={form.control}
+                name="price_range"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Price Range</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a price range" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="$">$</SelectItem>
+                            <SelectItem value="$$">$$</SelectItem>
+                            <SelectItem value="$$$">$$$</SelectItem>
+                            <SelectItem value="$$$$">$$$$</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+        </div>
+          <FormField
+            control={form.control}
+            name="tag_ids"
+            render={({ field }) => (
+                <FormItem>
+                    <div className="mb-4">
+                        <FormLabel className="text-base">Tags & Services</FormLabel>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {tags?.map((tag) => (
+                        <FormField
+                        key={tag.id}
+                        control={form.control}
+                        name="tag_ids"
+                        render={({ field }) => {
+                            return (
+                            <FormItem
+                                key={tag.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                                <FormControl>
+                                <Checkbox
+                                    checked={field.value?.includes(tag.id)}
+                                    onCheckedChange={(checked) => {
+                                    return checked
+                                        ? field.onChange([...(field.value || []), tag.id])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                            (value) => value !== tag.id
+                                            )
+                                        )
+                                    }}
+                                />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                {tag.name_en}
+                                </FormLabel>
+                            </FormItem>
+                            )
+                        }}
+                        />
+                    ))}
+                    </div>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Save Changes
+        </Button>
+      </form>
+    </Form>
   );
 }

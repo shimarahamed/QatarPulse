@@ -110,4 +110,8 @@ export type Review = {
   text: string;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
+  ownerResponse?: {
+    text: string;
+    respondedAt: Timestamp;
+  };
 };

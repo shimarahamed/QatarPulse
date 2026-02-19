@@ -16,9 +16,12 @@ service cloud.firestore {
         // Anyone can read reviews.
         allow read: if true;
 
-        // Logged-in users can create/update their own review.
-        // We use reviewId == request.auth.uid to ensure a user can only write to their own review document.
-        allow write: if request.auth != null && request.auth.uid == reviewId;
+        // Logged-in users can create their own review, using their UID as the document ID.
+        allow create: if request.auth != null && request.auth.uid == reviewId;
+        
+        // The author of the review OR the business owner can update it.
+        // Client logic must ensure they only update their respective fields for security.
+        allow update: if request.auth != null && (request.auth.uid == reviewId || get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid);
         
         // Users can delete their own review. Admins can delete any review.
         allow delete: if request.auth != null && (request.auth.uid == reviewId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');

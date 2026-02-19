@@ -129,7 +129,7 @@ export default function BusinessCard({
             <Button asChild variant="secondary" size="sm">
                 <Link href={`/account/my-businesses/${business.id}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
-                    Edit
+                    Manage
                 </Link>
             </Button>
         )}
