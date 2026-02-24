@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -58,6 +58,7 @@ export function UserAuthForm({
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState<boolean>(false);
   const { auth, firestore } = useFirebase();
+  const router = useRouter();
 
   const handleAuthSuccess = async (userCredential: UserCredential) => {
     const user = userCredential.user;
@@ -95,6 +96,7 @@ export function UserAuthForm({
         description: 'Welcome back!',
       });
     }
+    router.push('/');
   };
 
   const handleAuthError = (error: any) => {
