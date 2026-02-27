@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { toast } from '@/hooks/use-toast';
+import { Skeleton } from './ui/skeleton';
 
 const navLinks = [
   { href: '/search', label: 'Search' },
@@ -32,7 +33,9 @@ const navLinks = [
 ];
 
 export function Header() {
-  const { user, isUserLoading, auth } = useFirebase();
+  const { user, isUserLoading, userProfile, isProfileLoading, auth } = useFirebase();
+  const isAdmin = userProfile?.role === 'admin';
+
 
   const handleLogout = async () => {
     try {
@@ -146,7 +149,8 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {!isUserLoading && (
+          {(isUserLoading || isProfileLoading) && <Skeleton className="h-8 w-8 rounded-full" />}
+          {!isUserLoading && !isProfileLoading && (
             <>
               {user ? (
                 <DropdownMenu>
@@ -161,17 +165,20 @@ export function Header() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/account">Profile</Link>
-                    </DropdownMenuItem>
+                     {isAdmin ? (
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Dashboard</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem asChild>
+                          <Link href="/account">Profile</Link>
+                        </DropdownMenuItem>
+                      )}
                     <DropdownMenuItem asChild>
                       <Link href="/account/favorites">Favorites</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>

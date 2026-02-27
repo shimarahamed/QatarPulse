@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 
+export type WithId<T> = T & { id: string };
+
 export type Category = {
   id: string;
   name_en: string;
