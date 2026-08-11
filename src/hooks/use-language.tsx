@@ -10,8 +10,9 @@ import {
 } from 'react';
 import { doc } from 'firebase/firestore';
 import { useFirebase, setDocumentNonBlocking } from '@/firebase';
+import { pickLocalizedValue, type Lang } from '@/lib/localize';
 
-export type Lang = 'en' | 'ar';
+export type { Lang };
 
 interface LanguageContextValue {
   lang: Lang;
@@ -80,10 +81,7 @@ export function useLanguage() {
 export function useLocalizedField() {
   const { lang } = useLanguage();
   return useCallback(
-    (enValue: string, arValue: string | undefined) => {
-      if (lang === 'ar' && arValue) return arValue;
-      return enValue;
-    },
+    (enValue: string, arValue: string | undefined) => pickLocalizedValue(lang, enValue, arValue),
     [lang]
   );
 }
