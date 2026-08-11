@@ -23,7 +23,8 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
   const description =
     business.description_en?.slice(0, 160) ||
     `Find contact info, opening hours, and reviews for ${business.name_en} on QatarPulse — Qatar's business directory.`;
-  const logo = PlaceHolderImages.find((img) => img.id === business.logo_id);
+  const logoUrl =
+    business.logo_url ?? PlaceHolderImages.find((img) => img.id === business.logo_id)?.imageUrl;
 
   return {
     title,
@@ -32,13 +33,13 @@ export async function generateMetadata({ params }: BusinessPageProps): Promise<M
       title: socialTitle,
       description,
       type: 'website',
-      images: logo ? [{ url: logo.imageUrl }] : undefined,
+      images: logoUrl ? [{ url: logoUrl }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
       title: socialTitle,
       description,
-      images: logo ? [logo.imageUrl] : undefined,
+      images: logoUrl ? [logoUrl] : undefined,
     },
   };
 }

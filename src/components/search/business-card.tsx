@@ -31,7 +31,7 @@ export default function BusinessCard({
   isOwner = false,
 }: BusinessCardProps) {
   const localize = useLocalizedField();
-  const logo = PlaceHolderImages.find((img) => img.id === business.logo_id);
+  const logoUrl = business.logo_url ?? PlaceHolderImages.find((img) => img.id === business.logo_id)?.imageUrl;
   const isOpen = true; // Mock status
   const displayName = localize(business.name_en, business.name_ar);
   const displayAddress = localize(business.address_en, business.address_ar);
@@ -46,9 +46,9 @@ export default function BusinessCard({
       <div className="md:w-1/3 relative">
         <Link href={`/b/${business.slug}`}>
           <div className="aspect-[4/3] relative">
-            {logo ? (
+            {logoUrl ? (
               <Image
-                src={logo.imageUrl}
+                src={logoUrl}
                 alt={business.name_en}
                 fill
                 className="object-cover"

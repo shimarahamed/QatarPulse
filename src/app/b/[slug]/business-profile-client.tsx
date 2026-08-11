@@ -248,10 +248,17 @@ export default function BusinessProfileClient() {
     return notFound();
   }
 
-  const galleryImages =
+  const uploadedGalleryImages = (business.gallery_urls || []).map((url) => ({
+    imageUrl: url,
+    description: business.name_en,
+    imageHint: '',
+  }));
+  const placeholderGalleryImages =
     business.image_ids
       ?.map((id) => PlaceHolderImages.find((img) => img.id === id)!)
       .filter(Boolean) || [];
+  const galleryImages =
+    uploadedGalleryImages.length > 0 ? uploadedGalleryImages : placeholderGalleryImages;
   const mapImage = PlaceHolderImages.find(
     (img) => img.id === 'map-placeholder'
   );

@@ -30,7 +30,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ImageUploader } from '@/components/business/image-uploader';
 
 const businessSchema = z.object({
   name_en: z.string().min(1, 'English name is required'),
@@ -73,6 +74,9 @@ export default function EditBusinessPage() {
     defaultValues: {},
   });
 
+  const [logoUrl, setLogoUrl] = useState<string | undefined>();
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
+
   useEffect(() => {
     if (business) {
       form.reset({
@@ -88,8 +92,21 @@ export default function EditBusinessPage() {
         category_id: business.category_id,
         tag_ids: business.tag_ids || [],
       });
+      setLogoUrl(business.logo_url);
+      setGalleryUrls(business.gallery_urls || []);
     }
   }, [business, form]);
+
+  const handleLogoChange = (urls: string[]) => {
+    const url = urls[0];
+    setLogoUrl(url);
+    if (businessRef) updateDocumentNonBlocking(businessRef, { logo_url: url ?? null });
+  };
+
+  const handleGalleryChange = (urls: string[]) => {
+    setGalleryUrls(urls);
+    if (businessRef) updateDocumentNonBlocking(businessRef, { gallery_urls: urls });
+  };
 
 
   async function onSubmit(values: BusinessFormValues) {
@@ -126,6 +143,32 @@ export default function EditBusinessPage() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <Label>Logo</Label>
+            <div className="mt-2">
+              <ImageUploader
+                businessId={businessId}
+                urls={logoUrl ? [logoUrl] : []}
+                onChange={handleLogoChange}
+                maxFiles={1}
+                aspect="square"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Gallery Photos</Label>
+            <div className="mt-2">
+              <ImageUploader
+                businessId={businessId}
+                urls={galleryUrls}
+                onChange={handleGalleryChange}
+                maxFiles={6}
+                aspect="video"
+              />
+            </div>
+          </div>
+        </div>
         <div className="grid md:grid-cols-2 gap-8">
               <FormField
                 control={form.control}

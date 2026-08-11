@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin';
+    }
+
+    function ownsBusiness(businessId) {
+      return firestore.get(/databases/(default)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+    }
+
+    // Business photos (logo + gallery): publicly viewable, uploadable only
+    // by that business's owner or an admin, capped at 5MB per file.
+    match /businesses/{businessId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && (isAdmin() || ownsBusiness(businessId))
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && (isAdmin() || ownsBusiness(businessId));
+    }
+  }
+}

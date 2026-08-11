@@ -43,6 +43,10 @@ export type Business = {
   review_count: number;
   logo_id: string;
   image_ids: string[];
+  /** Real uploaded photo (Firebase Storage download URL), takes priority over logo_id when set. */
+  logo_url?: string;
+  /** Real uploaded gallery photos (Firebase Storage download URLs), takes priority over image_ids when non-empty. */
+  gallery_urls?: string[];
   ownerId?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
