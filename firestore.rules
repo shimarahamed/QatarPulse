@@ -58,6 +58,15 @@ service cloud.firestore {
       allow read, write, delete: if request.auth.uid == userId;
     }
 
+    // In-app notifications shown in the header bell dropdown. Any signed-in
+    // user can create one for another user (e.g. a business owner replying
+    // to a review, or an admin actioning a claim) — only the recipient can
+    // read, mark as read, or delete their own notifications.
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, update, delete: if request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
     // Claims can be created by any logged-in user.
     // Users can read their own claims.
     // Only admins can read all claims, update, or delete them.

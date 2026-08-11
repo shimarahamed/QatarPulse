@@ -26,6 +26,7 @@ import { signOut } from 'firebase/auth';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
 import { useLanguage } from '@/hooks/use-language';
+import { NotificationsBell } from './notifications-bell';
 
 const navLinks = [
   { href: '/search', label: 'Search' },
@@ -154,6 +155,8 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <NotificationsBell />
 
           {(isUserLoading || isProfileLoading) && <Skeleton className="h-8 w-8 rounded-full" />}
           {!isUserLoading && !isProfileLoading && (

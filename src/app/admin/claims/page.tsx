@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Loader2, MoreHorizontal, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { notifyUser } from '@/lib/notifications';
 import {
     Tooltip,
     TooltipContent,
@@ -74,6 +75,14 @@ export default function AdminClaimsPage() {
       batch.update(userRef, { role: 'business-owner' });
       await batch.commit();
 
+      notifyUser(firestore, {
+        userId: claim.claimerId,
+        type: 'claim_approved',
+        title: 'Business claim approved',
+        body: `Your claim for ${claim.businessName} has been approved. You're now the verified owner.`,
+        href: '/account/my-businesses',
+      });
+
       toast({
         title: 'Claim Approved',
         description: `${claim.claimerName} is now the owner of ${claim.businessName}.`,
@@ -98,6 +107,14 @@ export default function AdminClaimsPage() {
       const batch = writeBatch(firestore);
       batch.update(claimRef, { status: 'rejected' });
       await batch.commit();
+
+      notifyUser(firestore, {
+        userId: claim.claimerId,
+        type: 'claim_rejected',
+        title: 'Business claim rejected',
+        body: `Your claim for ${claim.businessName} was not approved.`,
+        href: '/account/claims',
+      });
 
       toast({
         title: 'Claim Rejected',

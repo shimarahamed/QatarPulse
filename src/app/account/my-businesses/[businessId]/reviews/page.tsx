@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { notifyUser } from '@/lib/notifications';
 
 const responseSchema = z.object({
   responseText: z.string().min(1, 'Response cannot be empty.'),
@@ -45,6 +46,15 @@ function OwnerReviewCard({ review }: { review: WithId<Review> }) {
 
     try {
       updateDocumentNonBlocking(reviewRef, { ownerResponse });
+      if (!review.ownerResponse) {
+        notifyUser(firestore, {
+          userId: review.userId,
+          type: 'review_reply',
+          title: 'The business owner replied to your review',
+          body: data.responseText,
+          href: `/account`,
+        });
+      }
       toast({ title: 'Response Submitted' });
       setIsResponding(false);
       reset();

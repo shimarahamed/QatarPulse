@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Check, ThumbsDown, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { notifyUser } from '@/lib/notifications';
 
 export default function AdminModerationPage() {
   const firestore = useFirestore();
@@ -44,6 +45,14 @@ export default function AdminModerationPage() {
     try {
       const reviewRef = doc(firestore, 'businesses', review.businessId, 'reviews', review.id);
       await updateDoc(reviewRef, { status: status });
+
+      notifyUser(firestore, {
+        userId: review.userId,
+        type: status === 'approved' ? 'review_approved' : 'review_rejected',
+        title: `Your review was ${status}`,
+        body: `Your review for ${review.businessName || 'a business'} has been ${status}.`,
+      });
+
       toast({
         title: `Review ${status}`,
         description: `The review for ${review.businessName} has been ${status}.`,
