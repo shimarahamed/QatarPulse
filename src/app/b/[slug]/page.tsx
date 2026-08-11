@@ -3,6 +3,7 @@
 import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import BusinessMap from '@/components/map/business-map';
 import {
   Card,
   CardContent,
@@ -451,14 +452,31 @@ export default function BusinessProfilePage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="h-64 relative">
-                  {mapImage && (
-                    <Image
-                      src={mapImage.imageUrl}
-                      alt="Map location"
-                      fill
-                      className="object-cover"
-                      data-ai-hint={mapImage.imageHint}
+                  {business.geo &&
+                  Number.isFinite(business.geo.lat) &&
+                  Number.isFinite(business.geo.lng) ? (
+                    <BusinessMap
+                      className="h-full w-full"
+                      markers={[
+                        {
+                          id: business.id,
+                          lat: business.geo.lat,
+                          lng: business.geo.lng,
+                          title: business.name_en,
+                          subtitle: business.address_en,
+                        },
+                      ]}
                     />
+                  ) : (
+                    mapImage && (
+                      <Image
+                        src={mapImage.imageUrl}
+                        alt="Map location"
+                        fill
+                        className="object-cover"
+                        data-ai-hint={mapImage.imageHint}
+                      />
+                    )
                   )}
                 </div>
               </CardContent>

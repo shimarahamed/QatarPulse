@@ -1,6 +1,5 @@
-import Image from 'next/image';
 import { Card } from '@/components/ui/card';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import BusinessMap from '@/components/map/business-map';
 import type { Business } from '@/lib/types';
 
 interface MapViewProps {
@@ -8,25 +7,21 @@ interface MapViewProps {
 }
 
 export default function MapView({ businesses }: MapViewProps) {
-  const mapImage = PlaceHolderImages.find(
-    (img) => img.id === 'map-placeholder'
-  );
+  const markers = businesses
+    .filter((b) => b.geo && Number.isFinite(b.geo.lat) && Number.isFinite(b.geo.lng))
+    .map((b) => ({
+      id: b.id,
+      lat: b.geo.lat,
+      lng: b.geo.lng,
+      title: b.name_en,
+      subtitle: b.address_en,
+      rating: b.rating,
+      href: `/b/${b.slug}`,
+    }));
 
   return (
     <Card className="w-full h-[600px] overflow-hidden">
-      <div className="relative w-full h-full">
-        {mapImage && (
-          <Image
-            src={mapImage.imageUrl}
-            alt="Map View"
-            fill
-            className="object-cover"
-            data-ai-hint={mapImage.imageHint}
-          />
-        )}
-        <div className="absolute inset-0 bg-black/10"></div>
-        {/* Here you would map over businesses and render map markers */}
-      </div>
+      <BusinessMap markers={markers} className="h-full w-full" />
     </Card>
   );
 }
