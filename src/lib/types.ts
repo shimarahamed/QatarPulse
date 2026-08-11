@@ -102,6 +102,35 @@ export type IngestionJob = {
   error?: string;
 };
 
+export type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: 'new' | 'read' | 'resolved';
+  userId?: string;
+  createdAt: Timestamp;
+};
+
+export type NotificationType =
+  | 'claim_approved'
+  | 'claim_rejected'
+  | 'review_reply'
+  | 'review_approved'
+  | 'review_rejected';
+
+export type Notification = {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  href?: string;
+  read: boolean;
+  createdAt: Timestamp;
+};
+
 export type Review = {
   id: string;
   businessId: string;

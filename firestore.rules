@@ -74,6 +74,13 @@ service cloud.firestore {
       allow read, delete: if isAdmin();
     }
 
+    // Anyone (including anonymous visitors) can submit a contact message.
+    // Only admins can read, update (mark read/resolved), or delete them.
+    match /contact_messages/{messageId} {
+      allow create: if request.resource.data.status == 'new';
+      allow read, update, delete: if isAdmin();
+    }
+
     // Ingestion sources and jobs are admin-only
     match /ingestion_sources/{sourceId} {
       allow read, write, delete: if isAdmin();

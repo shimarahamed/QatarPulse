@@ -9,6 +9,7 @@ import {
   Filter,
   AlertTriangle,
   Settings,
+  Mail,
 } from 'lucide-react';
 
 export const adminNavItems = [
@@ -61,6 +62,11 @@ export const adminNavItems = [
     href: '/admin/moderation',
     label: 'Moderation',
     icon: Filter,
+  },
+  {
+    href: '/admin/messages',
+    label: 'Messages',
+    icon: Mail,
   },
   {
     href: '/admin/reports',
