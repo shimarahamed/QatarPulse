@@ -9,7 +9,11 @@ import { FirebaseClientProvider } from '@/firebase';
 import { LanguageProvider } from '@/hooks/use-language';
 
 export const metadata: Metadata = {
-  title: 'QatarPulse - Your Business Directory for Qatar',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://qatarpulse.app'),
+  title: {
+    default: 'QatarPulse - Your Business Directory for Qatar',
+    template: '%s | QatarPulse',
+  },
   description:
     'Find, review, and connect with businesses across Qatar. The most comprehensive and up-to-date business directory for Doha and beyond.',
 };
