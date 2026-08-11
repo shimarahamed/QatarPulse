@@ -25,6 +25,7 @@ import { useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from './ui/skeleton';
+import { useLanguage } from '@/hooks/use-language';
 
 const navLinks = [
   { href: '/search', label: 'Search' },
@@ -35,6 +36,7 @@ const navLinks = [
 export function Header() {
   const { user, isUserLoading, userProfile, isProfileLoading, auth } = useFirebase();
   const isAdmin = userProfile?.role === 'admin';
+  const { lang, setLang } = useLanguage();
 
 
   const handleLogout = async () => {
@@ -144,8 +146,12 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>English</DropdownMenuItem>
-              <DropdownMenuItem>العربية</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLang('en')} disabled={lang === 'en'}>
+                English
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLang('ar')} disabled={lang === 'ar'}>
+                العربية
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

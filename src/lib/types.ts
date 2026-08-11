@@ -56,6 +56,7 @@ export type UserProfile = {
   displayName?: string;
   photoURL?: string;
   role: 'user' | 'admin' | 'business-owner';
+  language?: 'en' | 'ar';
   createdAt: Timestamp;
 };
 

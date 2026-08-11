@@ -15,6 +15,7 @@ import {
 import type { Business, Category, Tag } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { WithId } from '@/firebase';
+import { useLocalizedField } from '@/hooks/use-language';
 
 interface BusinessCardProps {
   business: WithId<Business>;
@@ -29,8 +30,11 @@ export default function BusinessCard({
   tags,
   isOwner = false,
 }: BusinessCardProps) {
+  const localize = useLocalizedField();
   const logo = PlaceHolderImages.find((img) => img.id === business.logo_id);
   const isOpen = true; // Mock status
+  const displayName = localize(business.name_en, business.name_ar);
+  const displayAddress = localize(business.address_en, business.address_ar);
 
   const relevantHours = business.opening_hours ? Object.values(business.opening_hours).find((h) =>
     h.includes(' - ')
@@ -76,13 +80,15 @@ export default function BusinessCard({
             <div>
               {category && (
                 <Link href={`/search?category=${category.id}`} className="text-sm text-primary font-medium">
-                  {category.name_en}
+                  {localize(category.name_en, category.name_ar)}
                 </Link>
               )}
               <h3 className="font-headline text-xl font-bold mt-1">
-                <Link href={`/b/${business.slug}`}>{business.name_en}</Link>
+                <Link href={`/b/${business.slug}`}>{displayName}</Link>
               </h3>
-              <p className="text-sm text-muted-foreground">{business.name_ar}</p>
+              {displayName !== business.name_ar && business.name_ar && (
+                <p className="text-sm text-muted-foreground">{business.name_ar}</p>
+              )}
             </div>
             <div className="flex items-center gap-1 text-sm font-bold text-amber-500">
               <Star className="h-4 w-4" />
@@ -91,7 +97,7 @@ export default function BusinessCard({
           </div>
           <div className="text-sm text-muted-foreground mt-2 flex items-center">
             <MapPin className="h-4 w-4 mr-2" />
-            <span>{business.address_en}</span>
+            <span>{displayAddress}</span>
           </div>
 
           <div className="mt-3 flex items-center gap-2 text-sm">
@@ -115,7 +121,7 @@ export default function BusinessCard({
           <div className="mt-4 flex flex-wrap gap-2">
             {tags?.map((tag) => (
               <Badge key={tag.id} variant="secondary">
-                {tag.name_en}
+                {localize(tag.name_en, tag.name_ar)}
               </Badge>
             ))}
           </div>

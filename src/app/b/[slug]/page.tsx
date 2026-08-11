@@ -4,6 +4,7 @@ import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import BusinessMap from '@/components/map/business-map';
+import { useLocalizedField } from '@/hooks/use-language';
 import {
   Card,
   CardContent,
@@ -71,6 +72,7 @@ export default function BusinessProfilePage() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  const localize = useLocalizedField();
 
   useEffect(() => {
     if (!firestore || !params.slug) return;
@@ -296,11 +298,11 @@ export default function BusinessProfilePage() {
                   <div>
                     {category && (
                       <p className="text-primary font-semibold">
-                        {category.name_en}
+                        {localize(category.name_en, category.name_ar)}
                       </p>
                     )}
                     <h1 className="font-headline text-3xl md:text-4xl font-bold mt-1">
-                      {business.name_en}
+                      {localize(business.name_en, business.name_ar)}
                     </h1>
                     <h2 className="text-lg text-muted-foreground">
                       {business.name_ar}
@@ -346,7 +348,7 @@ export default function BusinessProfilePage() {
                     About
                   </h3>
                   <p className="text-muted-foreground">
-                    {business.description_en}
+                    {localize(business.description_en, business.description_ar)}
                   </p>
                 </div>
                 <Separator className="my-6" />
@@ -357,7 +359,7 @@ export default function BusinessProfilePage() {
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag) => (
                       <Badge key={tag.id} variant="outline">
-                        {tag.name_en}
+                        {localize(tag.name_en, tag.name_ar)}
                       </Badge>
                     ))}
                   </div>
@@ -377,7 +379,7 @@ export default function BusinessProfilePage() {
                 <div className="flex items-start">
                   <MapPin className="h-5 w-5 mr-3 mt-1 text-muted-foreground flex-shrink-0" />
                   <div>
-                    <p>{business.address_en}</p>
+                    <p>{localize(business.address_en, business.address_ar)}</p>
                     <p className="text-muted-foreground">
                       {business.address_ar}
                     </p>
@@ -462,8 +464,8 @@ export default function BusinessProfilePage() {
                           id: business.id,
                           lat: business.geo.lat,
                           lng: business.geo.lng,
-                          title: business.name_en,
-                          subtitle: business.address_en,
+                          title: localize(business.name_en, business.name_ar),
+                          subtitle: localize(business.address_en, business.address_ar),
                         },
                       ]}
                     />
