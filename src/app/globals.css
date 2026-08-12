@@ -75,11 +75,69 @@
   }
 }
 
+/*
+ * Editorial palette used by the landing page. These are additive tokens —
+ * the core --background/--primary theme above is untouched so the rest of
+ * the app keeps its existing look.
+ */
+@layer base {
+  :root {
+    --sand: 38 44% 97%;
+    --sand-deep: 36 28% 93%;
+    --ink: 245 32% 11%;
+    --gold: 38 64% 50%;
+  }
+
+  .dark {
+    --sand: 240 12% 8%;
+    --sand-deep: 240 10% 12%;
+    --ink: 245 15% 93%;
+    --gold: 38 60% 58%;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /*
+   * Fine grid texture for the dark editorial bands. Drawn in --sand, which is
+   * always the counterpart of the --ink surfaces it sits on, so the lines stay
+   * visible in both light and dark themes.
+   */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--sand) / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--sand) / 0.08) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .animate-marquee {
+    animation: marquee 40s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+      animation: none;
+    }
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
   }
 }

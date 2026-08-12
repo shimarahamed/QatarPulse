@@ -19,9 +19,16 @@ export default {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Space Grotesk', 'sans-serif'],
+        display: ['Instrument Serif', 'Georgia', 'serif'],
         code: ['monospace'],
       },
       colors: {
+        sand: {
+          DEFAULT: 'hsl(var(--sand))',
+          deep: 'hsl(var(--sand-deep))',
+        },
+        ink: 'hsl(var(--ink))',
+        gold: 'hsl(var(--gold))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
